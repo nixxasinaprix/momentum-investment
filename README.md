@@ -16,11 +16,14 @@ A full-stack investment platform landing page and authentication portal featurin
 ├── backend/                # Flask API & NSE market data worker
 │   ├── auth.py             # JWT authentication blueprint & login_required
 │   ├── data/               # Nifty 200 universe CSV (nifty200.csv)
+│   ├── data_access.py      # Database-to-DataFrame price matrix loader
 │   ├── market_data.py      # Yahoo Finance fetcher & Redis/in-memory cache
 │   ├── market_routes.py    # Protected /api/stocks and /api/prices endpoints
 │   ├── models.py           # SQLAlchemy User, Stock, and Price models
-│   ├── scripts/            # Universe loader and daily price ingestion CLI
+│   ├── scripts/            # Universe loader, price ingestion, and signal CLI
 │   ├── server.py           # Flask server and background refresh daemon
+│   ├── signals.py          # Pure pandas/numpy momentum signal engine
+│   ├── signals_routes.py   # Protected /api/signals endpoint
 │   ├── tests/              # pytest test suite
 │   ├── .env.example
 │   └── requirements.txt
@@ -66,6 +69,7 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/auth/me` — Protected endpoint requiring `Authorization: Bearer <token>` (returns `200` `{ user }`)
 - `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
 - `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
+- `GET /api/signals?as_of=YYYY-MM-DD&method=vol_adjusted&top=20&lookback=252&skip=21` — Protected endpoint returning momentum scores, rankings, and top selections as of a given date
 
 #### Historical Market Data Ingestion
 
@@ -88,6 +92,24 @@ You can test with a subset of symbols using `--symbols RELIANCE.NS TCS.NS`.
 
 - **Survivorship bias**: `backend/data/nifty200.csv` reflects today's Nifty 200 constituents rather than historical point-in-time index membership, so backtests using this universe are subject to survivorship bias.
 - **Adjusted prices**: All daily OHLC prices are downloaded with `yfinance` `auto_adjust=True`, adjusting historical prices for stock splits, bonuses, and dividends so corporate actions do not create artificial price jumps.
+
+#### Signal Methodology
+
+The momentum engine (`backend/signals.py`) ranks the active Nifty 200 universe on any target date using pure vectorized `pandas`/`numpy` operations:
+
+- **Momentum formula**: Trailing return over trading-day positions is computed as `price[as_of - skip_days] / price[as_of - lookback_days] - 1` (default `lookback_days = 252`, `skip_days = 21`, i.e., 12-1 month momentum).
+- **Why the most recent month is skipped**: Short-term (1-month / ~21 trading day) returns exhibit mean reversion and microstructure noise; skipping the most recent month isolates intermediate-term trend continuation.
+- **Volatility adjustment**: In `vol_adjusted` mode (default), raw momentum is divided by annualised daily return volatility (`std(daily_returns) * sqrt(252)` over the lookback window) so steady trends rank ahead of erratic high-beta spikes with the same return. `raw` mode ranks directly by raw momentum.
+- **Eligibility rules**: Stocks must have at least `lookback_days + skip_days` valid trading-day rows strictly before the effective `as_of` date, valid positive prices at both `as_of - skip_days` and `as_of - lookback_days`, and a finite non-NaN score (NaN or zero-volatility scores under `vol_adjusted` are excluded, never filled). Ties in score are broken deterministically by symbol so ranks `1..N` have no duplicates.
+- **No-look-ahead guarantee**: All inputs are sliced to rows with `date <= as_of` before any computation; if `as_of` falls on a weekend or market holiday, the last trading day on or before `as_of` is used.
+
+Inspect the latest top 20 rankings from `backend/`:
+
+```bash
+cd backend
+python -m scripts.show_top --method vol_adjusted
+python -m scripts.show_top --method raw
+```
 
 #### Backend Tests
 

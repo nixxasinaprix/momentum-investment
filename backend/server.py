@@ -10,6 +10,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 from auth import auth_bp  # noqa: E402
 from market_routes import market_bp  # noqa: E402
 from models import db  # noqa: E402
+from signals_routes import signals_bp  # noqa: E402
 import market_data  # noqa: E402
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ CORS(app, allow_headers=["Content-Type", "Authorization"])
 db.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(market_bp)
+app.register_blueprint(signals_bp)
 
 with app.app_context():
     db.create_all()
