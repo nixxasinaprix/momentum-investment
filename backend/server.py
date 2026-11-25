@@ -1,29 +1,36 @@
 import os
-import time
 import threading
-from dotenv import load_dotenv
+import time
 from flask import Flask, jsonify
 from flask_cors import CORS
+from sqlalchemy import func, text
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
-
+from config import SETTINGS  # noqa: E402
+from extensions import limiter, migrate  # noqa: E402
 from auth import auth_bp  # noqa: E402
 from backtest_routes import backtest_bp  # noqa: E402
 from market_routes import market_bp  # noqa: E402
-from models import db, ensure_schema_columns  # noqa: E402
+from models import Price, Stock, db  # noqa: E402
 from pipeline_routes import pipeline_bp  # noqa: E402
 from research_routes import research_bp  # noqa: E402
 from signals_routes import signals_bp  # noqa: E402
 import market_data  # noqa: E402
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", "sqlite:///momentum.db"
-)
+app.config["SQLALCHEMY_DATABASE_URI"] = SETTINGS["DATABASE_URL"]
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+if SETTINGS["SQLALCHEMY_ENGINE_OPTIONS"]:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = SETTINGS["SQLALCHEMY_ENGINE_OPTIONS"]
 
-CORS(app, allow_headers=["Content-Type", "Authorization"])
+CORS(
+    app,
+    resources={r"/api/*": {"origins": SETTINGS["ALLOWED_ORIGINS"]}},
+    allow_headers=["Content-Type", "Authorization"],
+)
 db.init_app(app)
+migrate.init_app(app, db)
+limiter.init_app(app)
+
 app.register_blueprint(auth_bp)
 app.register_blueprint(backtest_bp)
 app.register_blueprint(market_bp)
@@ -31,9 +38,24 @@ app.register_blueprint(pipeline_bp)
 app.register_blueprint(research_bp)
 app.register_blueprint(signals_bp)
 
-with app.app_context():
-    db.create_all()
-    ensure_schema_columns()
+
+# ═══════════════════════════════════════════════════════
+# 🛡️ SAFE ERROR HANDLERS
+# ═══════════════════════════════════════════════════════
+@app.errorhandler(429)
+def handle_rate_limit(_err):
+    return jsonify({"error": "Too many requests. Please try again later."}), 429
+
+
+@app.errorhandler(404)
+def handle_not_found(_err):
+    return jsonify({"error": "Resource not found"}), 404
+
+
+@app.errorhandler(500)
+def handle_internal_error(_err):
+    return jsonify({"error": "Internal server error"}), 500
+
 
 # ═══════════════════════════════════════════════════════
 # 📦 BASELINE / SEED DATA
@@ -49,7 +71,7 @@ DEFAULT_INDEX = {
     "high": 24089.05,
     "low": 23722.75,
     "_source": "fallback",
-    "isFallback": True
+    "isFallback": True,
 }
 
 DEFAULT_DETAILS = {
@@ -69,7 +91,7 @@ DEFAULT_DETAILS = {
         {"symbol": "ITC", "name": "ITC Limited", "last": 465.20, "change": -1.85, "pChange": -0.40},
     ],
     "_source": "fallback",
-    "isFallback": True
+    "isFallback": True,
 }
 
 # Pre-seed cache so all endpoints respond instantaneously from the first call
@@ -96,7 +118,7 @@ def background_market_worker():
                     "index": index,
                     "topGainers": sorted_stocks[:5],
                     "topLosers": sorted(sorted_stocks, key=lambda x: x["pChange"])[:5],
-                    "_source": "live_market"
+                    "_source": "live_market",
                 }
                 market_data.save_to_cache("nifty500_details", details, ttl=180)
                 print("✅ Background worker: Live market data updated successfully.")
@@ -114,8 +136,9 @@ def home():
     cache_mode = "Redis ✅" if market_data.REDIS_AVAILABLE else "In-Memory Fallback ⚡ (Redis server offline)"
     return (
         f"<h1>Momentum Investment API</h1>"
-        f"<p>Cache: {cache_mode}</p>"
+        f"<p>Environment: {SETTINGS['APP_ENV']} | Cache: {cache_mode}</p>"
         f"<p>"
+        f"<a href='/api/health'>/api/health</a> | "
         f"<a href='/api/nifty500'>/api/nifty500</a> | "
         f"<a href='/api/nifty500-details'>/api/nifty500-details</a> | "
         f"<a href='/api/cache-status'>/api/cache-status</a>"
@@ -123,16 +146,48 @@ def home():
     )
 
 
+@app.route("/api/health", methods=["GET"])
+def health():
+    """Verify database connectivity and report the latest stored price date."""
+    try:
+        db.session.execute(text("SELECT 1"))
+        latest_price_date = db.session.query(func.max(Price.date)).scalar()
+        active_stocks = (
+            db.session.query(func.count(Stock.id))
+            .filter(Stock.is_active.is_(True))
+            .scalar()
+        )
+        return (
+            jsonify(
+                {
+                    "status": "ok",
+                    "database": "connected",
+                    "env": SETTINGS["APP_ENV"],
+                    "latest_price_date": latest_price_date.isoformat()
+                    if latest_price_date
+                    else None,
+                    "active_stocks": int(active_stocks or 0),
+                }
+            ),
+            200,
+        )
+    except Exception:
+        return jsonify({"status": "error", "database": "unavailable"}), 503
+
+
 @app.route("/api/cache-status")
 def cache_status():
-    """Lets you verify whether Redis or In-Memory caching is active."""
-    return jsonify({
-        "redisConnected": market_data.REDIS_AVAILABLE,
-        "cacheMode": "redis" if market_data.REDIS_AVAILABLE else "in-memory",
-        "cacheTTL": market_data.CACHE_TTL,
-        "message": "Connected to Redis server" if market_data.REDIS_AVAILABLE
-                   else "Using in-memory cache fallback (start Redis on port 6379 to use Redis)"
-    })
+    """Verify whether Redis or In-Memory caching is active."""
+    return jsonify(
+        {
+            "redisConnected": market_data.REDIS_AVAILABLE,
+            "cacheMode": "redis" if market_data.REDIS_AVAILABLE else "in-memory",
+            "cacheTTL": market_data.CACHE_TTL,
+            "message": "Connected to Redis server"
+            if market_data.REDIS_AVAILABLE
+            else "Using in-memory cache fallback (start Redis on port 6379 to use Redis)",
+        }
+    )
 
 
 @app.route("/api/nifty500")
@@ -152,6 +207,7 @@ def nifty500_details():
 
 
 if __name__ == "__main__":
-    # Start the background refresh daemon only when running server
+    # Start the background refresh daemon only when running local dev server directly
     threading.Thread(target=background_market_worker, daemon=True).start()
-    app.run(port=8000, debug=True)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=SETTINGS["APP_ENV"] == "development")

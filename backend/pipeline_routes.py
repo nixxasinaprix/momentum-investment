@@ -16,6 +16,11 @@ PIPELINE_CACHE_TTL = 300.0
 _PIPELINE_CACHE: dict[tuple, tuple[float, dict]] = {}
 
 
+def clear_pipeline_cache() -> None:
+    """Clear cached pipeline run results and preloaded matrices."""
+    _PIPELINE_CACHE.clear()
+
+
 def _cache_tag() -> tuple[str, str, int]:
     latest_price = db.session.query(func.max(Price.date)).scalar()
     latest_fund = db.session.query(func.max(Stock.last_updated)).scalar()

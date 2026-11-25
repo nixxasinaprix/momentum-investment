@@ -8,14 +8,12 @@ import jwt
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
+from config import SETTINGS
+from extensions import limiter
 from models import User, db
 
-JWT_SECRET = os.environ.get("JWT_SECRET")
-if not JWT_SECRET or not JWT_SECRET.strip():
-    raise RuntimeError(
-        "JWT_SECRET environment variable is missing. "
-        "Set JWT_SECRET in backend/.env before starting the server."
-    )
+JWT_SECRET = SETTINGS["JWT_SECRET"]
+AUTH_RATE_LIMIT = SETTINGS["AUTH_RATE_LIMIT"]
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24
@@ -67,6 +65,7 @@ def login_required(fn):
 
 
 @auth_bp.route("/signup", methods=["POST"])
+@limiter.limit(AUTH_RATE_LIMIT)
 def signup():
     """Register a new user account and return a JWT."""
     data = request.get_json(silent=True) or {}
@@ -96,6 +95,7 @@ def signup():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit(AUTH_RATE_LIMIT)
 def login():
     """Authenticate an existing user and return a JWT."""
     data = request.get_json(silent=True) or {}

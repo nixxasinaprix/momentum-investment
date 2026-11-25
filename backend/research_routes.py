@@ -54,10 +54,20 @@ def _set_cache(key: tuple, value: object, ttl: float = CACHE_TTL_SECONDS) -> Non
     _CACHE[key] = (time.monotonic() + ttl, value)
 
 
-def _universe_cache_tag() -> tuple[str, int]:
+def clear_research_cache() -> None:
+    """Clear all cached screener, overview, and monthly rank snapshots."""
+    _CACHE.clear()
+
+
+def _universe_cache_tag() -> tuple[str, str, int]:
     latest = db.session.query(func.max(Price.date)).scalar()
+    latest_fund = db.session.query(func.max(Stock.last_updated)).scalar()
     stock_count = db.session.query(func.count(Stock.id)).filter(Stock.is_active.is_(True)).scalar()
-    return (latest.isoformat() if latest else "none", int(stock_count or 0))
+    return (
+        latest.isoformat() if latest else "none",
+        latest_fund.isoformat() if latest_fund else "none",
+        int(stock_count or 0),
+    )
 
 
 def _build_screener_data() -> dict:

@@ -51,10 +51,10 @@ class Stock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     symbol = db.Column(db.String(32), unique=True, index=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
-    sector = db.Column(db.String(255), nullable=True)
+    sector = db.Column(db.String(255), index=True, nullable=True)
     market_cap = db.Column(db.Float, nullable=True)
     last_updated = db.Column(db.DateTime(timezone=True), nullable=True)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, index=True, nullable=False)
 
     prices = db.relationship("Price", back_populates="stock", cascade="all, delete-orphan")
 
@@ -80,6 +80,7 @@ class Price(db.Model):
     __table_args__ = (
         db.UniqueConstraint("stock_id", "date", name="uq_prices_stock_date"),
         db.Index("ix_prices_stock_date", "stock_id", "date"),
+        db.Index("ix_prices_date", "date"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -132,6 +133,9 @@ class BacktestRun(db.Model):
     """Persisted backtest simulation run belonging to a user."""
 
     __tablename__ = "backtest_runs"
+    __table_args__ = (
+        db.Index("ix_backtest_runs_user_created", "user_id", "created_at"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(

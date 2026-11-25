@@ -69,16 +69,44 @@ python -m venv venv
 pip install -r requirements.txt
 cp .env.example .env
 # Edit backend/.env and set a random JWT_SECRET (for example: python -c "import secrets; print(secrets.token_hex(32))")
+flask --app server:app db upgrade
 python server.py
 ```
 
 #### Backend Environment Variables (`backend/.env`)
 
-- `JWT_SECRET` (required) — Secret key used to sign HS256 JWT tokens (`24h` expiry)
-- `DATABASE_URL` (optional, defaults to `sqlite:///momentum.db`) — SQLAlchemy database connection string
+- `APP_ENV` (optional, defaults to `development`) — `development`, `staging`, or `production`
+- `JWT_SECRET` (required outside `development`) — Secret key used to sign HS256 JWT tokens (`24h` expiry). Startup fails with a clear error if unset or left as the placeholder outside `development`.
+- `DATABASE_URL` (optional, defaults to `sqlite:///momentum.db`) — SQLAlchemy database connection string (`postgres://...` is automatically normalized to `postgresql://...` for Render/PostgreSQL)
+- `ALLOWED_ORIGINS` (optional, defaults to `http://localhost:5173,http://127.0.0.1:5173`) — Comma-separated CORS origins allowed for `/api/*`
+- `RATELIMIT_STORAGE_URI` (optional, defaults to `memory://`) — Storage backend for `Flask-Limiter`
+- `AUTH_RATE_LIMIT` (optional, defaults to `10 per minute`) — Rate limit applied to `/api/auth/login` and `/api/auth/signup`
+
+#### Database Migrations (`Flask-Migrate` / Alembic)
+
+```bash
+cd backend
+flask --app server:app db upgrade            # Apply migrations to SQLite or PostgreSQL
+flask --app server:app db migrate -m "..."   # Generate a new migration after model edits
+```
+
+#### Staging Deployment (Render + Vercel)
+
+1. **Backend & PostgreSQL (Render)**:
+   - Provision a Render PostgreSQL database and a Python Web Service rooted at `backend/`.
+   - Build command: `pip install -r requirements.txt`
+   - Start command (also in `backend/Procfile`):
+     `flask --app server:app db upgrade && gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120`
+   - Set environment variables: `APP_ENV=staging`, `DATABASE_URL` (from Render Postgres), `JWT_SECRET` (64-char random hex), and `ALLOWED_ORIGINS=https://your-app.vercel.app`.
+   - Verify via `GET /api/health` (`status: "ok"`, `database: "connected"`, `latest_price_date`).
+
+2. **Frontend (Vercel)**:
+   - Root directory: `frontend/` (`npm run build` -> `dist/`).
+   - Set `VITE_API_URL=https://your-backend-service.onrender.com`.
 
 The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /` — API status and links
+- `GET /api/health` — Database connectivity check, active stock count, and latest price date
 - `GET /api/nifty500` — NIFTY 500 index summary
 - `GET /api/nifty500-details` — Index summary plus NSE top 5 gainers and losers
 - `GET /api/cache-status` — Active cache mode (`redis` or `in-memory`) and TTL
@@ -97,22 +125,24 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/backtests` — Protected endpoint listing the logged-in user's saved backtest runs (headline metrics)
 - `GET /api/backtests/<id>` — Protected endpoint returning the full saved backtest result (`404` if not found or owned by another user)
 
-#### Historical Market Data Ingestion
+#### Historical Market Data & Daily Update Job
 
-From `backend/`, populate the Nifty 200 stock universe and download ~6 years of daily adjusted OHLCV history:
+From `backend/`, populate the Nifty 500 stock universe and download ~6 years of daily adjusted OHLCV history:
 
 ```bash
 cd backend
 python -m scripts.ingest_prices --full
 ```
 
-Fetch only new trading days after each stock's latest stored date:
+Run the idempotent daily update (incremental prices + benchmark + fundamentals older than 7 days + cache clear):
 
 ```bash
-python -m scripts.ingest_prices --incremental
+python -m scripts.daily_update
 ```
 
-You can test with a subset of symbols using `--symbols RELIANCE.NS TCS.NS`.
+**Scheduling after Indian market close**: NSE equity markets close at **15:30 IST (10:00 UTC)**. Schedule `cd backend && python -m scripts.daily_update` Monday–Friday after settlement (for example **16:45 IST / 11:15 UTC**):
+- **Render Cron Job** (`backend/` root): schedule `15 11 * * 1-5`, command `python -m scripts.daily_update`
+- **Linux crontab**: `15 11 * * 1-5 cd /path/to/backend && venv/bin/python -m scripts.daily_update`
 
 #### Data Notes
 
