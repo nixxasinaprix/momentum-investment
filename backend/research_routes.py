@@ -22,7 +22,7 @@ from indicators import (
     describe_trend,
 )
 from models import Price, Stock, db
-from signals import compute_momentum, compute_scores, compute_volatility
+from signals import ALLOWED_METHODS, compute_momentum, compute_scores, compute_volatility
 
 research_bp = Blueprint("research", __name__, url_prefix="/api")
 
@@ -101,6 +101,31 @@ def _build_screener_data() -> dict:
     score_map = scores_df.set_index("symbol").to_dict(orient="index")
     trends = classify_trend_series(last_price, sma50, sma200)
 
+    # Previous month-end rank for rank-change calculation
+    month_ends = (
+        prices.index.to_series()
+        .groupby(prices.index.to_period("M"))
+        .last()
+        .tolist()
+    )
+    prev_month_ts = None
+    if len(month_ends) >= 2:
+        last_me = pd.Timestamp(month_ends[-1]).normalize()
+        prev_month_ts = (
+            pd.Timestamp(month_ends[-2])
+            if last_me >= as_of_ts.normalize()
+            else last_me
+        )
+    prev_rank_map = {}
+    if prev_month_ts is not None:
+        prev_scores_df = compute_scores(
+            prices.loc[:prev_month_ts], as_of=prev_month_ts, method="vol_adjusted"
+        )
+        if not prev_scores_df.empty:
+            prev_rank_map = dict(
+                zip(prev_scores_df["symbol"], prev_scores_df["rank"].astype(int))
+            )
+
     spark_tail = filled.iloc[-30:]
 
     rows = []
@@ -109,6 +134,13 @@ def _build_screener_data() -> dict:
         if sym not in prices.columns:
             continue
         sc_info = score_map.get(sym, {})
+        cur_rank = int(sc_info["rank"]) if "rank" in sc_info else None
+        prev_rank = prev_rank_map.get(sym)
+        rank_change = (
+            int(prev_rank - cur_rank)
+            if cur_rank is not None and prev_rank is not None
+            else None
+        )
         ret_row = returns_df.loc[sym] if sym in returns_df.index else {}
         spark_vals = [
             round(float(v), 2)
@@ -127,7 +159,9 @@ def _build_screener_data() -> dict:
                 "ret_12_1m": _clean_num(ret_row.get("ret_12_1m") if hasattr(ret_row, "get") else None),
                 "volatility": _clean_num(ret_row.get("volatility") if hasattr(ret_row, "get") else None),
                 "score": _clean_num(sc_info.get("score")),
-                "rank": int(sc_info["rank"]) if "rank" in sc_info else None,
+                "rank": cur_rank,
+                "rank_prev_month": prev_rank,
+                "rank_change": rank_change,
                 "pct_below_52w_high": _clean_num(hl["pct_below_52w_high"].get(sym)),
                 "high_52w": _clean_num(hl["high_52w"].get(sym)),
                 "low_52w": _clean_num(hl["low_52w"].get(sym)),
@@ -490,3 +524,132 @@ def get_stock_analysis(symbol: str):
         ),
         200,
     )
+
+
+def _parse_query_int(name: str, default: int, min_val: int, max_val: int) -> tuple[int | None, str | None]:
+    raw = request.args.get(name)
+    if raw is None or raw == "":
+        return default, None
+    try:
+        val = int(raw)
+    except ValueError:
+        return None, f"Parameter '{name}' must be an integer."
+    if val < min_val or val > max_val:
+        return None, f"Parameter '{name}' must be between {min_val} and {max_val}."
+    return val, None
+
+
+@research_bp.route("/strategy/preview", methods=["GET"])
+@login_required
+def get_strategy_preview():
+    """Lightweight preview of the current top-N portfolio for live Strategy Lab sliders."""
+    method = (request.args.get("method") or "vol_adjusted").strip()
+    if method not in ALLOWED_METHODS:
+        return (
+            jsonify(
+                {"error": f"Invalid 'method'. Must be one of: {', '.join(ALLOWED_METHODS)}."}
+            ),
+            400,
+        )
+
+    top, err = _parse_query_int("top", 20, 1, 100)
+    if err:
+        return jsonify({"error": err}), 400
+
+    lookback, err = _parse_query_int("lookback", 252, 60, 504)
+    if err:
+        return jsonify({"error": err}), 400
+
+    skip, err = _parse_query_int("skip", 21, 0, 63)
+    if err:
+        return jsonify({"error": err}), 400
+
+    if skip >= lookback:
+        return jsonify({"error": "Parameter 'skip' must be strictly less than 'lookback'."}), 400
+
+    tag = _universe_cache_tag()
+    preview_key = ("strategy_preview", *tag, method, top, lookback, skip)
+    cached_preview = _get_cache(preview_key)
+    if cached_preview is not None:
+        return jsonify(cached_preview), 200
+
+    matrix_key = ("full_price_matrix", *tag)
+    cached_matrix = _get_cache(matrix_key)
+    if cached_matrix is None:
+        prices = load_price_matrix(db.session)
+        meta = {
+            s.symbol: (s.name, s.sector or "Other")
+            for s in Stock.query.filter_by(is_active=True).all()
+        }
+        cached_matrix = (prices, meta)
+        _set_cache(matrix_key, cached_matrix)
+
+    prices, stock_meta = cached_matrix
+    if prices.empty:
+        return jsonify({"error": "No price data available in database."}), 404
+
+    latest_ts = prices.index[-1]
+    scores = compute_scores(
+        prices,
+        as_of=latest_ts,
+        method=method,
+        lookback_days=lookback,
+        skip_days=skip,
+    )
+    selected_df = scores.head(top)
+    weight = (1.0 / len(selected_df)) if len(selected_df) > 0 else 0.0
+
+    # Compare against defaults (vol_adjusted, top=20, lookback=252, skip=21)
+    default_scores = compute_scores(
+        prices,
+        as_of=latest_ts,
+        method="vol_adjusted",
+        lookback_days=252,
+        skip_days=21,
+    )
+    default_top = set(default_scores.head(20)["symbol"].tolist())
+    current_top = set(selected_df["symbol"].tolist())
+
+    portfolio = []
+    sector_counts: dict[str, int] = {}
+    for row in selected_df.itertuples(index=False):
+        name, sector = stock_meta.get(row.symbol, (row.symbol, "Other"))
+        sector_counts[sector] = sector_counts.get(sector, 0) + 1
+        portfolio.append(
+            {
+                "rank": int(row.rank),
+                "symbol": row.symbol,
+                "name": name,
+                "sector": sector,
+                "momentum": _clean_num(row.momentum),
+                "volatility": _clean_num(row.volatility),
+                "score": _clean_num(row.score),
+                "weight": round(weight, 6),
+                "in_default": row.symbol in default_top,
+            }
+        )
+
+    sectors = sorted(
+        [{"sector": k, "count": v} for k, v in sector_counts.items()],
+        key=lambda x: (-x["count"], x["sector"]),
+    )
+
+    payload = {
+        "as_of": latest_ts.date().isoformat(),
+        "universe_size": len(scores),
+        "parameters": {
+            "method": method,
+            "top": top,
+            "lookback": lookback,
+            "skip": skip,
+        },
+        "comparison_to_default": {
+            "overlap_count": len(current_top & default_top),
+            "added": sorted(current_top - default_top),
+            "removed": sorted(default_top - current_top),
+        },
+        "sectors": sectors,
+        "portfolio": portfolio,
+    }
+    _set_cache(preview_key, payload)
+    return jsonify(payload), 200

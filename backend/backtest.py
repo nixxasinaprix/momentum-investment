@@ -215,6 +215,40 @@ def _compute_series_metrics(
     }
 
 
+def _compute_monthly_returns_table(
+    port_series: pd.Series,
+    bench_series: pd.Series,
+    initial_capital: float,
+) -> list[dict]:
+    """Compute calendar-month returns for strategy vs benchmark."""
+    p_ends = port_series.groupby(port_series.index.to_period("M")).last()
+    b_ends = bench_series.groupby(bench_series.index.to_period("M")).last()
+
+    p_prev = p_ends.shift(1)
+    p_prev.iloc[0] = initial_capital
+    b_prev = b_ends.shift(1)
+    b_prev.iloc[0] = initial_capital
+
+    p_rets = (p_ends / p_prev) - 1.0
+    b_rets = (b_ends / b_prev) - 1.0
+
+    rows = []
+    for period in p_ends.index:
+        p_r = float(p_rets.loc[period])
+        b_r = float(b_rets.loc[period])
+        rows.append(
+            {
+                "year": int(period.year),
+                "month": int(period.month),
+                "period": str(period),
+                "strategy_return": p_r,
+                "benchmark_return": b_r,
+                "excess_return": float(p_r - b_r),
+            }
+        )
+    return rows
+
+
 def _compute_yearly_returns(
     port_series: pd.Series,
     bench_series: pd.Series,
@@ -347,6 +381,7 @@ def run_backtest(
     last_known = pd.Series(np.nan, index=symbols, dtype=float)
     shares = pd.Series(0.0, index=symbols, dtype=float)
     cash = float(initial_capital)
+    prev_selected_set: set[str] = set()
 
     data_warnings: list[dict] = []
     rebalances: list[dict] = []
@@ -440,12 +475,18 @@ def run_backtest(
 
             shares = new_shares
             turnover = (0.5 * traded_value / v_pre) if v_pre > 0.0 else 0.0
+            curr_selected_set = set(selected)
+            bought = sorted(curr_selected_set - prev_selected_set)
+            sold = sorted(prev_selected_set - curr_selected_set)
+            prev_selected_set = curr_selected_set
 
             rebalances.append(
                 {
                     "signal_date": plan["signal_date"].date().isoformat(),
                     "executed_date": plan["executed_date"].date().isoformat(),
                     "selected_symbols": selected,
+                    "bought": bought,
+                    "sold": sold,
                     "selected_count": len(selected),
                     "target_count": cfg["top_n"],
                     "turnover": float(turnover),
@@ -497,6 +538,9 @@ def run_backtest(
         float(np.mean([r["selected_count"] for r in rebalances])) if rebalances else 0.0
     )
 
+    monthly_returns = _compute_monthly_returns_table(
+        port_series, bench_rebased, initial_capital
+    )
     yearly_returns = _compute_yearly_returns(port_series, bench_rebased, initial_capital)
 
     return {
@@ -505,6 +549,7 @@ def run_backtest(
         "end_date": eq_index[-1].date().isoformat(),
         "equity_curve": equity_curve,
         "rebalances": rebalances,
+        "monthly_returns": monthly_returns,
         "yearly_returns": yearly_returns,
         "metrics": {
             "risk_free_rate": cfg["risk_free_rate"],

@@ -321,6 +321,8 @@ def test_backtest_endpoints_auth_validation_isolation(app, client):
     assert created["benchmark"]["symbol"] == "^CNX200"
     assert len(created["equity_curve"]) > 0
     assert len(created["rebalances"]) >= 1
+    assert "bought" in created["rebalances"][0] and "sold" in created["rebalances"][0]
+    assert len(created["monthly_returns"]) >= 1
     assert "strategy" in created["metrics"] and "benchmark" in created["metrics"]
 
     # List user 1 runs (headline metrics only)

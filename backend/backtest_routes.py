@@ -204,6 +204,7 @@ def create_backtest():
         "benchmark": bench_info,
         "start_date": bt_output["start_date"],
         "end_date": bt_output["end_date"],
+        "monthly_returns": bt_output["monthly_returns"],
         "yearly_returns": bt_output["yearly_returns"],
         "equity_curve": bt_output["equity_curve"],
         "rebalances": bt_output["rebalances"],

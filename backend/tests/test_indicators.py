@@ -185,3 +185,15 @@ def test_research_endpoints_auth_and_payloads(app, client):
     assert analysis["score_breakdown"]["price_21_ago"] is not None
     assert len(analysis["series"]) > 0
     assert len(analysis["rank_history"]) > 0
+
+    assert client.get("/api/strategy/preview").status_code == 401
+    assert client.get("/api/strategy/preview?lookback=59", headers=headers).status_code == 400
+    preview_res = client.get(
+        "/api/strategy/preview?lookback=252&skip=21&top=2&method=vol_adjusted",
+        headers=headers,
+    )
+    assert preview_res.status_code == 200
+    preview = preview_res.get_json()
+    assert preview["parameters"]["top"] == 2
+    assert len(preview["portfolio"]) == 2
+    assert preview["portfolio"][0]["symbol"] == "ALPHA.NS"
