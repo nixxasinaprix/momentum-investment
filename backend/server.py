@@ -10,7 +10,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 from auth import auth_bp  # noqa: E402
 from backtest_routes import backtest_bp  # noqa: E402
 from market_routes import market_bp  # noqa: E402
-from models import db  # noqa: E402
+from models import db, ensure_schema_columns  # noqa: E402
+from pipeline_routes import pipeline_bp  # noqa: E402
 from research_routes import research_bp  # noqa: E402
 from signals_routes import signals_bp  # noqa: E402
 import market_data  # noqa: E402
@@ -26,11 +27,13 @@ db.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(backtest_bp)
 app.register_blueprint(market_bp)
+app.register_blueprint(pipeline_bp)
 app.register_blueprint(research_bp)
 app.register_blueprint(signals_bp)
 
 with app.app_context():
     db.create_all()
+    ensure_schema_columns()
 
 # ═══════════════════════════════════════════════════════
 # 📦 BASELINE / SEED DATA

@@ -147,11 +147,18 @@ def _build_screener_data() -> dict:
             for v in spark_tail[sym].dropna().tolist()
         ]
 
+        mcap_cr = (
+            round(float(stock.market_cap) / 1e7, 2)
+            if stock.market_cap is not None and float(stock.market_cap) > 0
+            else None
+        )
         rows.append(
             {
                 "symbol": sym,
                 "name": stock.name,
                 "sector": stock.sector or "Other",
+                "market_cap_cr": mcap_cr,
+                "market_cap_status": "known" if mcap_cr is not None else "unknown",
                 "last_price": _clean_num(last_price.get(sym)),
                 "ret_1m": _clean_num(ret_row.get("ret_1m") if hasattr(ret_row, "get") else None),
                 "ret_3m": _clean_num(ret_row.get("ret_3m") if hasattr(ret_row, "get") else None),
@@ -411,14 +418,25 @@ def get_stock_analysis(symbol: str):
     ret_3m = (last_close / float(close_s.iloc[-64]) - 1.0) if len(close_s) > 63 else None
     ret_6m = (last_close / float(close_s.iloc[-127]) - 1.0) if len(close_s) > 126 else None
 
-    mom_s = compute_momentum(single_df, latest_ts, lookback_days=252, skip_days=21)
-    vol_s_ann = compute_volatility(single_df, latest_ts, window=252)
+    lookback_days = int(request.args.get("lookback") or 252)
+    skip_days = int(request.args.get("skip") or 21)
+    lookback_days = max(60, min(504, lookback_days))
+    skip_days = max(0, min(63, min(skip_days, lookback_days - 1)))
+
+    mom_s = compute_momentum(single_df, latest_ts, lookback_days=lookback_days, skip_days=skip_days)
+    vol_s_ann = compute_volatility(single_df, latest_ts, window=lookback_days)
     mom_val = _clean_num(mom_s.iloc[0])
     vol_ann = _clean_num(vol_s_ann.iloc[0])
 
     # Universe rank & monthly rank history
     prices_matrix = load_price_matrix(db.session)
-    current_scores = compute_scores(prices_matrix, as_of=latest_ts, method="vol_adjusted")
+    current_scores = compute_scores(
+        prices_matrix,
+        as_of=latest_ts,
+        method="vol_adjusted",
+        lookback_days=lookback_days,
+        skip_days=skip_days,
+    )
     cur_row = current_scores.loc[current_scores["symbol"] == stock.symbol]
     current_rank = int(cur_row["rank"].iloc[0]) if not cur_row.empty else None
     current_score = _clean_num(cur_row["score"].iloc[0]) if not cur_row.empty else None
@@ -447,8 +465,6 @@ def get_stock_analysis(symbol: str):
             )
 
     # Step-by-step numbers behind current momentum score
-    lookback_days = 252
-    skip_days = 21
     # Use the stock's trading positions in the universe matrix if aligned, or its own series
     if stock.symbol in prices_matrix.columns:
         mat_sliced = prices_matrix.loc[prices_matrix.index <= latest_ts, stock.symbol]
