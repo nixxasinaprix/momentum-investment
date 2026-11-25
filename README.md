@@ -87,7 +87,8 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
 - `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
 - `GET /api/signals?as_of=YYYY-MM-DD&method=vol_adjusted&top=20&lookback=252&skip=21` — Protected endpoint returning momentum scores, rankings, and top selections as of a given date
-- `GET /api/screener` — Protected, cached endpoint returning full-universe indicators, returns, scores, ranks, and trend labels
+- `GET /api/strategy/preview?lookback=252&skip=21&top=20&method=vol_adjusted` — Lightweight protected endpoint returning live Strategy Lab top-N portfolio, sector counts, and diff vs defaults
+- `GET /api/screener` — Protected, cached endpoint returning full-universe indicators, returns, scores, ranks, rank changes, and trend labels
 - `GET /api/stocks/<symbol>/analysis?range=1y|3y|5y` — Protected endpoint returning SMA/RSI/relative-strength series, monthly rank history, and step-by-step score breakdown
 - `GET /api/market/overview` — Protected, cached endpoint returning top/bottom 10 momentum leaders, sector heatmap metrics, and breadth history
 - `POST /api/backtest` — Protected endpoint validating parameters, running a monthly momentum backtest, saving a `BacktestRun`, and returning metrics, yearly returns, equity curve, and rebalances
@@ -184,3 +185,34 @@ cd frontend
 npm run lint
 npm run build
 ```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    YF["yfinance (NSE Daily Bars + ^CNX200)"] --> ING["Ingestion Scripts (ingest_prices, ingest_benchmark)"]
+    ING --> DB[("SQLite / SQLAlchemy (stocks, prices, benchmark_prices, users, backtest_runs)")]
+    DB --> DA["data_access.py (Price Matrix & Benchmark Loader)"]
+    DA --> SIG["signals.py (Pure Vectorized Momentum Engine)"]
+    DA --> IND["indicators.py (Pure Pandas SMA/RSI/52W/Trend)"]
+    SIG --> BT["backtest.py (Monthly Rebalance + T+1 Lag + Costs)"]
+    SIG --> API["Flask API Blueprints (auth, market, signals, research, backtest)"]
+    IND --> API
+    BT --> API
+    API -->|"JWT Bearer JSON"| FE["React + Vite + Tailwind + Recharts + KaTeX SPA"]
+```
+
+## Screenshots
+
+| Page | Preview |
+|---|---|
+| Landing Page | ![Landing](docs/screenshots/landing.png) |
+| Sign In | ![Login](docs/screenshots/login.png) |
+| Market Overview (`/dashboard`) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Momentum Screener (`/screener`) | ![Screener](docs/screenshots/screener.png) |
+| Stock Analysis (`/stock/:symbol`) | ![Stock Detail](docs/screenshots/stock-detail.png) |
+| Strategy Lab (`/strategy`) | ![Strategy Lab](docs/screenshots/strategy-lab.png) |
+| Backtester (`/backtest`) | ![Backtest](docs/screenshots/backtest.png) |
+| Compare Stocks (`/compare`) | ![Compare](docs/screenshots/compare.png) |
+| Momentum 101 (`/learn`) | ![Learn](docs/screenshots/learn.png) |
+| Watchlist (`/watchlist`) | ![Watchlist](docs/screenshots/watchlist.png) |
