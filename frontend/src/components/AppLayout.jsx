@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/screener", label: "Screener", icon: Filter },
   { to: "/compare", label: "Compare", icon: GitCompare },
-  { to: "/strategy-lab", label: "Strategy Lab", icon: SlidersHorizontal },
+  { to: "/strategy", label: "Strategy Lab", icon: SlidersHorizontal },
   { to: "/backtest", label: "Backtest", icon: BarChart3 },
   { to: "/learn", label: "Learn", icon: BookOpen },
   { to: "/watchlist", label: "Watchlist", icon: Star },
@@ -34,6 +34,12 @@ export default function AppLayout({ title, subtitle, actions, children }) {
   const { watchlist } = useWatchlist();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = title
+      ? `${title} · Momentum Investment`
+      : "Momentum Investment";
+  }, [title]);
 
   const handleLogout = () => {
     clearApiCache();

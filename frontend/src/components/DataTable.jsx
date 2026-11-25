@@ -71,18 +71,26 @@ export default function DataTable({
                 return (
                   <th
                     key={col.key}
-                    className={`px-4 py-3.5 ${col.align === "right" ? "text-right" : ""} ${
-                      col.sortable ? "cursor-pointer select-none hover:text-white" : ""
-                    }`}
-                    onClick={() => handleSort(col)}
+                    aria-sort={
+                      col.sortable
+                        ? active
+                          ? sortDir === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                        : undefined
+                    }
+                    className={`px-4 py-3.5 ${col.align === "right" ? "text-right" : ""}`}
                   >
-                    <div
-                      className={`inline-flex items-center gap-1.5 ${
-                        col.align === "right" ? "flex-row-reverse" : ""
-                      }`}
-                    >
-                      <span>{col.label}</span>
-                      {col.sortable && (
+                    {col.sortable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSort(col)}
+                        className={`inline-flex items-center gap-1.5 rounded focus:outline-none focus:ring-1 focus:ring-[#F0867C] hover:text-white ${
+                          col.align === "right" ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <span>{col.label}</span>
                         <span className={active ? "text-[#F0867C]" : "text-stone-600"}>
                           {active ? (
                             sortDir === "asc" ? (
@@ -94,8 +102,10 @@ export default function DataTable({
                             <ArrowUpDown className="h-3.5 w-3.5" />
                           )}
                         </span>
-                      )}
-                    </div>
+                      </button>
+                    ) : (
+                      <span>{col.label}</span>
+                    )}
                   </th>
                 );
               })}
@@ -105,10 +115,21 @@ export default function DataTable({
             {pagedRows.map((row) => (
               <tr
                 key={row[rowKey]}
+                tabIndex={onRowClick ? 0 : undefined}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
                 className={`transition-colors ${
                   onRowClick
-                    ? "cursor-pointer hover:bg-white/[0.04]"
+                    ? "cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.06] focus:outline-none"
                     : "hover:bg-white/[0.02]"
                 }`}
               >

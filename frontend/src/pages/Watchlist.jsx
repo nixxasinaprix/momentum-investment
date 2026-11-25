@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
 import Sparkline from "../components/Sparkline";
@@ -15,12 +15,25 @@ export default function Watchlist() {
   const navigate = useNavigate();
   const { watchlist, toggleWatchlist, clearWatchlist } = useWatchlist();
   const { data, loading, error, refetch } = useCachedApi("/api/screener");
+  const [addPicker, setAddPicker] = useState("");
+
+  const allStocks = useMemo(() => data?.stocks || [], [data]);
 
   const watchedRows = useMemo(() => {
-    const stocks = data?.stocks || [];
     const set = new Set(watchlist);
-    return stocks.filter((s) => set.has(s.symbol));
-  }, [data, watchlist]);
+    return allStocks.filter((s) => set.has(s.symbol));
+  }, [allStocks, watchlist]);
+
+  const availableToAdd = useMemo(() => {
+    const set = new Set(watchlist);
+    return allStocks.filter((s) => !set.has(s.symbol));
+  }, [allStocks, watchlist]);
+
+  const handleAdd = (sym) => {
+    if (!sym) return;
+    toggleWatchlist(sym);
+    setAddPicker("");
+  };
 
   const columns = [
     {
@@ -28,7 +41,38 @@ export default function Watchlist() {
       label: "Rank",
       sortable: true,
       defaultDir: "asc",
-      render: (r) => (r.rank ? `#${r.rank}` : "—"),
+      render: (r) => (
+        <span className="font-semibold text-white">
+          {r.rank != null ? `#${r.rank}` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "rank_change",
+      label: "1M Rank Δ",
+      sortable: true,
+      align: "right",
+      render: (r) => {
+        if (r.rank_change === null || r.rank_change === undefined) {
+          return <span className="text-stone-500">—</span>;
+        }
+        if (r.rank_change > 0) {
+          return (
+            <span className="inline-flex items-center gap-0.5 font-semibold text-emerald-400">
+              <ArrowUp className="h-3 w-3" />+{r.rank_change}
+            </span>
+          );
+        }
+        if (r.rank_change < 0) {
+          return (
+            <span className="inline-flex items-center gap-0.5 font-semibold text-rose-400">
+              <ArrowDown className="h-3 w-3" />
+              {r.rank_change}
+            </span>
+          );
+        }
+        return <span className="text-stone-400">0</span>;
+      },
     },
     {
       key: "symbol",
@@ -97,7 +141,7 @@ export default function Watchlist() {
             toggleWatchlist(r.symbol);
           }}
           className="rounded-lg p-1.5 text-stone-400 hover:bg-rose-500/15 hover:text-rose-300"
-          aria-label="Remove from watchlist"
+          aria-label={`Remove ${r.symbol} from watchlist`}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -108,29 +152,49 @@ export default function Watchlist() {
   return (
     <AppLayout
       title="Watchlist"
-      subtitle={`${watchlist.length} starred stocks saved locally in your browser`}
+      subtitle={`${watchlist.length} starred stocks · Tracks rank changes since last month`}
       actions={
-        watchlist.length > 0 && (
-          <button
-            type="button"
-            onClick={clearWatchlist}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-300 hover:border-rose-400/50 hover:text-rose-300"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Clear All
-          </button>
-        )
+        <div className="flex items-center gap-2">
+          {availableToAdd.length > 0 && (
+            <div className="relative flex items-center">
+              <Plus className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#F0867C]" />
+              <select
+                value={addPicker}
+                onChange={(e) => handleAdd(e.target.value)}
+                aria-label="Add stock to watchlist"
+                className="rounded-xl border border-white/15 bg-[#12131F] py-1.5 pl-8 pr-3 text-xs font-medium text-white focus:border-[#F0867C] focus:outline-none"
+              >
+                <option value="">Add stock...</option>
+                {availableToAdd.map((s) => (
+                  <option key={s.symbol} value={s.symbol}>
+                    {shortSymbol(s.symbol)} — {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {watchlist.length > 0 && (
+            <button
+              type="button"
+              onClick={clearWatchlist}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-300 hover:border-rose-400/50 hover:text-rose-300"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear All
+            </button>
+          )}
+        </div>
       }
     >
       {loading && !data ? (
-        <SkeletonTable rows={6} cols={7} />
+        <SkeletonTable rows={6} cols={8} />
       ) : error && !data ? (
         <ErrorState title="Could not load watchlist metrics" message={error} onRetry={refetch} />
       ) : !watchedRows.length ? (
         <EmptyState
           icon={Star}
           title="Your watchlist is empty"
-          description="Star any stock in the Screener or on its Stock Detail page to track it here."
+          description="Use the Add stock selector above, or click the star icon on any stock in the Screener or Stock Detail page."
           action={
             <Link
               to="/screener"

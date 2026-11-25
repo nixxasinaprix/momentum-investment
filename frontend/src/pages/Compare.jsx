@@ -6,6 +6,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -90,11 +91,13 @@ export default function Compare() {
     setCustomSelected(selected.filter((s) => s !== sym));
   };
 
-  const normalizedChart = useMemo(() => {
+  const { normalizedChart, rsChart } = useMemo(() => {
     const activeItems = selected.map((s) => analyses[s]).filter(Boolean);
-    if (!activeItems.length) return [];
+    if (!activeItems.length) return { normalizedChart: [], rsChart: [] };
 
-    const byDate = new Map();
+    const normByDate = new Map();
+    const rsByDate = new Map();
+
     activeItems.forEach((item) => {
       const sym = item.stock.symbol;
       const pts = item.series || [];
@@ -102,19 +105,100 @@ export default function Compare() {
       if (!firstValid) return;
       const base = firstValid.close;
       pts.forEach((p) => {
-        if (p.close == null) return;
-        if (!byDate.has(p.date)) byDate.set(p.date, { date: p.date });
-        byDate.get(p.date)[sym] = Number(((p.close / base) * 100).toFixed(2));
+        if (p.close != null) {
+          if (!normByDate.has(p.date)) normByDate.set(p.date, { date: p.date });
+          normByDate.get(p.date)[sym] = Number(((p.close / base) * 100).toFixed(2));
+        }
+        if (p.relative_strength != null) {
+          if (!rsByDate.has(p.date)) rsByDate.set(p.date, { date: p.date });
+          rsByDate.get(p.date)[sym] = Number(p.relative_strength.toFixed(2));
+        }
       });
     });
 
-    return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      normalizedChart: Array.from(normByDate.values()).sort((a, b) => a.date.localeCompare(b.date)),
+      rsChart: Array.from(rsByDate.values()).sort((a, b) => a.date.localeCompare(b.date)),
+    };
   }, [analyses, selected]);
+
+  const metricRows = [
+    {
+      label: "Last Price",
+      bestMode: null,
+      val: (a) => a.summary.last_price,
+      render: (a) => formatINR(a.summary.last_price),
+    },
+    {
+      label: "Universe Rank",
+      bestMode: "min",
+      val: (a) => a.summary.rank,
+      render: (a) => (a.summary.rank ? `#${a.summary.rank}` : "—"),
+    },
+    {
+      label: "Momentum Score",
+      bestMode: "max",
+      val: (a) => a.summary.score,
+      render: (a) => (a.summary.score != null ? a.summary.score.toFixed(3) : "—"),
+    },
+    {
+      label: "12-1M Return",
+      bestMode: "max",
+      val: (a) => a.summary.ret_12_1m,
+      render: (a) => formatPct(a.summary.ret_12_1m, 2),
+    },
+    {
+      label: "6M Return",
+      bestMode: "max",
+      val: (a) => a.summary.ret_6m,
+      render: (a) => formatPct(a.summary.ret_6m, 2),
+    },
+    {
+      label: "3M Return",
+      bestMode: "max",
+      val: (a) => a.summary.ret_3m,
+      render: (a) => formatPct(a.summary.ret_3m, 2),
+    },
+    {
+      label: "1M Return",
+      bestMode: "max",
+      val: (a) => a.summary.ret_1m,
+      render: (a) => formatPct(a.summary.ret_1m, 2),
+    },
+    {
+      label: "Annualised Vol (Lower Better)",
+      bestMode: "min",
+      val: (a) => a.summary.volatility,
+      render: (a) =>
+        a.summary.volatility != null ? `${(a.summary.volatility * 100).toFixed(2)}%` : "—",
+    },
+    {
+      label: "RSI(14)",
+      bestMode: null,
+      val: (a) => a.summary.rsi_14,
+      render: (a) => (a.summary.rsi_14 != null ? a.summary.rsi_14.toFixed(1) : "—"),
+    },
+    {
+      label: "% Below 52W High (Closest)",
+      bestMode: "min",
+      val: (a) => a.summary.pct_below_52w_high,
+      render: (a) =>
+        a.summary.pct_below_52w_high != null
+          ? `-${a.summary.pct_below_52w_high.toFixed(1)}%`
+          : "—",
+    },
+    {
+      label: "Trend",
+      bestMode: null,
+      val: () => null,
+      render: (a) => <TrendBadge trend={a.summary.trend} />,
+    },
+  ];
 
   return (
     <AppLayout
       title="Compare Stocks"
-      subtitle="Side-by-side normalized performance and quantitative metrics for up to 4 stocks"
+      subtitle="Rebased performance, relative strength vs Nifty 200, and side-by-side metrics for 2–4 stocks"
     >
       {screenerLoading && !screener ? (
         <div className="space-y-6">
@@ -125,7 +209,6 @@ export default function Compare() {
         <ErrorState title="Could not load universe" message={screenerError} onRetry={refetch} />
       ) : (
         <div className="space-y-6">
-          {/* Selector bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-4 shadow-lg">
             <div className="flex flex-wrap items-center gap-2">
               {selected.map((sym, idx) => (
@@ -150,22 +233,20 @@ export default function Compare() {
               ))}
 
               {selected.length < 4 && (
-                <div className="flex items-center gap-1.5">
-                  <select
-                    value={pickerVal}
-                    onChange={(e) => addSymbol(e.target.value)}
-                    className="rounded-xl border border-white/10 bg-[#07080F] px-3 py-1.5 text-xs text-white focus:border-[#F0867C] focus:outline-none"
-                  >
-                    <option value="">+ Add stock ({selected.length}/4)</option>
-                    {allStocks
-                      .filter((s) => !selected.includes(s.symbol))
-                      .map((s) => (
-                        <option key={s.symbol} value={s.symbol}>
-                          {shortSymbol(s.symbol)} — {s.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                <select
+                  value={pickerVal}
+                  onChange={(e) => addSymbol(e.target.value)}
+                  className="rounded-xl border border-white/10 bg-[#07080F] px-3 py-1.5 text-xs text-white focus:border-[#F0867C] focus:outline-none"
+                >
+                  <option value="">+ Add stock ({selected.length}/4)</option>
+                  {allStocks
+                    .filter((s) => !selected.includes(s.symbol))
+                    .map((s) => (
+                      <option key={s.symbol} value={s.symbol}>
+                        {shortSymbol(s.symbol)} — {s.name}
+                      </option>
+                    ))}
+                </select>
               )}
             </div>
 
@@ -185,11 +266,11 @@ export default function Compare() {
             </div>
           </div>
 
-          {!selected.length ? (
+          {selected.length < 2 ? (
             <EmptyState
               icon={Plus}
-              title="Select stocks to compare"
-              description="Choose 2 to 4 Nifty 200 stocks above to compare their normalized performance and momentum metrics."
+              title="Pick 2 to 4 stocks to compare"
+              description="Use the selector above to add at least 2 Nifty 200 stocks."
             />
           ) : analysisError ? (
             <ErrorState title="Comparison failed" message={analysisError} />
@@ -197,61 +278,112 @@ export default function Compare() {
             <SkeletonChart height={340} />
           ) : (
             <>
-              <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                <h2 className="font-display text-base font-bold text-white">
-                  Normalized Price Performance (Base = 100)
-                </h2>
-                <p className="mb-4 text-xs text-stone-400">
-                  Cumulative growth from the start of the {range.toUpperCase()} window
-                </p>
-                <div className="h-[340px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={normalizedChart} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: "#a8a29e", fontSize: 11 }}
-                        tickFormatter={(v) => v.slice(2, 7)}
-                        minTickGap={30}
-                      />
-                      <YAxis tick={{ fill: "#a8a29e", fontSize: 11 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#141220",
-                          borderColor: "rgba(255,255,255,0.12)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} />
-                      {selected.map((sym, idx) => (
-                        <Line
-                          key={sym}
-                          type="monotone"
-                          dataKey={sym}
-                          name={shortSymbol(sym)}
-                          stroke={LINE_COLORS[idx % LINE_COLORS.length]}
-                          strokeWidth={2}
-                          dot={false}
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+                  <h2 className="font-display text-base font-bold text-white">
+                    Normalized Performance (Base = 100)
+                  </h2>
+                  <p className="mb-4 text-xs text-stone-400">
+                    Cumulative return over the {range.toUpperCase()} window
+                  </p>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={normalizedChart} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: "#a8a29e", fontSize: 11 }}
+                          tickFormatter={(v) => v.slice(2, 7)}
+                          minTickGap={30}
                         />
-                      ))}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
+                        <YAxis tick={{ fill: "#a8a29e", fontSize: 11 }} />
+                        <ReferenceLine y={100} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#141220",
+                            borderColor: "rgba(255,255,255,0.12)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        {selected.map((sym, idx) => (
+                          <Line
+                            key={sym}
+                            type="monotone"
+                            dataKey={sym}
+                            name={shortSymbol(sym)}
+                            stroke={LINE_COLORS[idx % LINE_COLORS.length]}
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+                  <h2 className="font-display text-base font-bold text-white">
+                    Relative Strength vs Nifty 200 (Base = 100)
+                  </h2>
+                  <p className="mb-4 text-xs text-stone-400">
+                    Rising line indicates outperformance relative to the ^CNX200 benchmark
+                  </p>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={rsChart} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fill: "#a8a29e", fontSize: 11 }}
+                          tickFormatter={(v) => v.slice(2, 7)}
+                          minTickGap={30}
+                        />
+                        <YAxis tick={{ fill: "#a8a29e", fontSize: 11 }} />
+                        <ReferenceLine y={100} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#141220",
+                            borderColor: "rgba(255,255,255,0.12)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        {selected.map((sym, idx) => (
+                          <Line
+                            key={sym}
+                            type="monotone"
+                            dataKey={sym}
+                            name={shortSymbol(sym)}
+                            stroke={LINE_COLORS[idx % LINE_COLORS.length]}
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              </div>
 
               <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#12131F]/90 shadow-lg">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px] border-collapse text-left text-sm">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.03] text-xs font-semibold uppercase tracking-wider text-stone-400">
-                        <th className="px-4 py-3.5">Metric</th>
-                        {selected.map((sym) => (
+                        <th className="px-4 py-3.5">Metric (Best Highlighted)</th>
+                        {selected.map((sym, idx) => (
                           <th key={sym} className="px-4 py-3.5 text-right">
                             <Link
                               to={`/stock/${encodeURIComponent(sym)}`}
-                              className="text-white hover:text-[#F0867C]"
+                              className="inline-flex items-center gap-1.5 text-white hover:text-[#F0867C]"
                             >
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: LINE_COLORS[idx % LINE_COLORS.length] }}
+                              />
                               {shortSymbol(sym)}
                             </Link>
                           </th>
@@ -259,74 +391,60 @@ export default function Compare() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.06]">
-                      {[
-                        {
-                          label: "Last Price",
-                          render: (a) => formatINR(a.summary.last_price),
-                        },
-                        {
-                          label: "Universe Rank",
-                          render: (a) => (a.summary.rank ? `#${a.summary.rank}` : "—"),
-                        },
-                        {
-                          label: "Momentum Score",
-                          render: (a) =>
-                            a.summary.score != null ? a.summary.score.toFixed(3) : "—",
-                        },
-                        {
-                          label: "12-1M Return",
-                          render: (a) => formatPct(a.summary.ret_12_1m, 2),
-                        },
-                        {
-                          label: "6M Return",
-                          render: (a) => formatPct(a.summary.ret_6m, 2),
-                        },
-                        {
-                          label: "3M Return",
-                          render: (a) => formatPct(a.summary.ret_3m, 2),
-                        },
-                        {
-                          label: "1M Return",
-                          render: (a) => formatPct(a.summary.ret_1m, 2),
-                        },
-                        {
-                          label: "Annualised Vol",
-                          render: (a) =>
-                            a.summary.volatility != null
-                              ? `${(a.summary.volatility * 100).toFixed(2)}%`
-                              : "—",
-                        },
-                        {
-                          label: "RSI(14)",
-                          render: (a) =>
-                            a.summary.rsi_14 != null ? a.summary.rsi_14.toFixed(1) : "—",
-                        },
-                        {
-                          label: "% Below 52W High",
-                          render: (a) =>
-                            a.summary.pct_below_52w_high != null
-                              ? `-${a.summary.pct_below_52w_high.toFixed(1)}%`
-                              : "—",
-                        },
-                        {
-                          label: "Trend",
-                          render: (a) => <TrendBadge trend={a.summary.trend} />,
-                        },
-                      ].map((row) => (
-                        <tr key={row.label} className="hover:bg-white/[0.02]">
-                          <td className="px-4 py-3 font-medium text-stone-400">
-                            {row.label}
-                          </td>
-                          {selected.map((sym) => {
-                            const item = analyses[sym];
-                            return (
-                              <td key={sym} className="px-4 py-3 text-right tabular-nums text-white">
-                                {item ? row.render(item) : "—"}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
+                      {metricRows.map((row) => {
+                        const vals = selected
+                          .map((sym) => ({
+                            sym,
+                            num: analyses[sym] ? row.val(analyses[sym]) : null,
+                          }))
+                          .filter((x) => x.num !== null && x.num !== undefined && !Number.isNaN(x.num));
+
+                        let bestVal = null;
+                        if (row.bestMode && vals.length > 0) {
+                          bestVal =
+                            row.bestMode === "max"
+                              ? Math.max(...vals.map((v) => v.num))
+                              : Math.min(...vals.map((v) => v.num));
+                        }
+
+                        return (
+                          <tr key={row.label} className="hover:bg-white/[0.02]">
+                            <td className="px-4 py-3 font-medium text-stone-400">
+                              {row.label}
+                            </td>
+                            {selected.map((sym) => {
+                              const item = analyses[sym];
+                              const rawVal = item ? row.val(item) : null;
+                              const isBest =
+                                bestVal !== null &&
+                                rawVal !== null &&
+                                rawVal !== undefined &&
+                                rawVal === bestVal;
+
+                              return (
+                                <td
+                                  key={sym}
+                                  className="px-4 py-3 text-right tabular-nums text-white"
+                                >
+                                  {item ? (
+                                    <span
+                                      className={
+                                        isBest
+                                          ? "inline-block rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 font-bold text-emerald-300"
+                                          : ""
+                                      }
+                                    >
+                                      {row.render(item)}
+                                    </span>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

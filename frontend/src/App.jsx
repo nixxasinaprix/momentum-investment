@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import Backtest from "./pages/Backtest";
@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import LandingPage from "./pages/LandingPage";
 import Learn from "./pages/Learn";
 import LoginPage from "./pages/LoginPage";
+import NotFound from "./pages/NotFound";
 import Screener from "./pages/Screener";
 import StockDetail from "./pages/StockDetail";
 import StrategyLab from "./pages/StrategyLab";
@@ -27,10 +28,12 @@ export default function App() {
           <Route path="/screener" element={<Protected><Screener /></Protected>} />
           <Route path="/stock/:symbol" element={<Protected><StockDetail /></Protected>} />
           <Route path="/compare" element={<Protected><Compare /></Protected>} />
-          <Route path="/strategy-lab" element={<Protected><StrategyLab /></Protected>} />
+          <Route path="/strategy" element={<Protected><StrategyLab /></Protected>} />
+          <Route path="/strategy-lab" element={<Navigate to="/strategy" replace />} />
           <Route path="/backtest" element={<Protected><Backtest /></Protected>} />
           <Route path="/learn" element={<Protected><Learn /></Protected>} />
           <Route path="/watchlist" element={<Protected><Watchlist /></Protected>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

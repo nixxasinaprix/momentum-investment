@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  TrendingUp, TrendingDown, Shield, Zap, BarChart3, Globe, Clock,
-  ArrowRight, CheckCircle2, Star, Menu, X, Sun, Moon, RefreshCw
+  TrendingUp, Zap, BarChart3, Filter, SlidersHorizontal, BookOpen, GitCompare,
+  ArrowRight, CheckCircle2, Menu, X, Sun, Moon, RefreshCw, TrendingDown
 } from "lucide-react";
 import SceneryBackground from "../components/SceneryBackground";
 
@@ -74,6 +74,10 @@ export default function LandingPage() {
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
+    document.title = "Momentum Investment · Nifty 200 Quantitative Research";
+  }, []);
+
+  useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
@@ -142,61 +146,40 @@ export default function LandingPage() {
   const features = [
     {
       icon: TrendingUp,
-      title: "Real-Time Analytics",
-      description: "Track your portfolio performance with live market data and intelligent insights."
+      title: "Market Breadth & Leaders",
+      description: "Track Nifty 200 breadth above 50/200DMAs, sector momentum heatmaps, and top/bottom 10 movers."
     },
     {
-      icon: Shield,
-      title: "Bank-Grade Security",
-      description: "Enterprise encryption and multi-factor authentication protect every transaction."
-    },
-    {
-      icon: Zap,
-      title: "Lightning Execution",
-      description: "Execute trades in milliseconds with our optimized trading infrastructure."
+      icon: Filter,
+      title: "200-Stock Momentum Screener",
+      description: "Filter by sector, moving-average trend regime, and minimum score, with CSV export and watchlist stars."
     },
     {
       icon: BarChart3,
-      title: "Advanced Charts",
-      description: "Professional-grade charting tools with 100+ technical indicators."
+      title: "Technical & KaTeX Stock Analysis",
+      description: "Inspect SMA 20/50/200, RSI(14), monthly rank history, and the exact numbers plugged into each score."
     },
     {
-      icon: Globe,
-      title: "Global Markets",
-      description: "Access stocks, ETFs, crypto, and forex across 50+ international exchanges."
+      icon: SlidersHorizontal,
+      title: "Strategy Lab",
+      description: "Tune lookback (60–504d), skip window (0–63d), top N, and raw vs volatility-adjusted scoring live."
     },
     {
-      icon: Clock,
-      title: "24/7 Support",
-      description: "Expert support team available around the clock to assist you."
+      icon: GitCompare,
+      title: "Multi-Stock Compare",
+      description: "Compare 2 to 4 stocks side-by-side with rebased-to-100 charts and relative strength vs Nifty 200."
+    },
+    {
+      icon: BookOpen,
+      title: "Backtester & Momentum 101",
+      description: "Simulate monthly rebalances with T+1 execution lag and transaction costs, plus interactive KaTeX guides."
     }
   ];
 
   const steps = [
-    { number: "01", title: "Create Account", description: "Sign up in seconds with just your email and broker key." },
-    { number: "02", title: "Fund Your Portfolio", description: "Deposit funds securely through your preferred payment method." },
-    { number: "03", title: "Start Trading", description: "Access global markets and start building your investment portfolio." }
-  ];
-
-  const testimonials = [
-    {
-      name: "Sarah Chen",
-      role: "Portfolio Manager",
-      content: "Momentum Investment transformed how I manage client portfolios. The real-time analytics are game-changing.",
-      rating: 5
-    },
-    {
-      name: "Michael Rodriguez",
-      role: "Independent Trader",
-      content: "The execution speed is incredible. I've never experienced such seamless trading on any platform.",
-      rating: 5
-    },
-    {
-      name: "Emily Thompson",
-      role: "Financial Advisor",
-      content: "The security features give my clients peace of mind. It's the most professional platform I've used.",
-      rating: 5
-    }
+    { number: "01", title: "Sign In to Research Lab", description: "Authenticate with JWT to access the Nifty 200 historical database and momentum engine." },
+    { number: "02", title: "Screen & Tune Signals", description: "Explore market breadth, filter leaders, or test lookback and skip parameters in Strategy Lab." },
+    { number: "03", title: "Backtest with Lag & Costs", description: "Run monthly simulations against Nifty 200 (^CNX200) with next-day execution and bps costs." }
   ];
 
   return (
@@ -225,10 +208,10 @@ export default function LandingPage() {
                 Features
               </a>
               <a href="#how-it-works" className="relative text-sm font-medium text-stone-700 transition-colors hover:text-[#6E3559] after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-[#6E3559] after:transition-transform after:duration-300 hover:after:scale-x-100 dark:text-stone-300 dark:after:bg-[#F0867C] dark:hover:text-[#F0867C]">
-                How It Works
+                Workflow
               </a>
-              <a href="#testimonials" className="relative text-sm font-medium text-stone-700 transition-colors hover:text-[#6E3559] after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-[#6E3559] after:transition-transform after:duration-300 hover:after:scale-x-100 dark:text-stone-300 dark:after:bg-[#F0867C] dark:hover:text-[#F0867C]">
-                Testimonials
+              <a href="#market-insights" className="relative text-sm font-medium text-stone-700 transition-colors hover:text-[#6E3559] after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-[#6E3559] after:transition-transform after:duration-300 hover:after:scale-x-100 dark:text-stone-300 dark:after:bg-[#F0867C] dark:hover:text-[#F0867C]">
+                NSE Feed
               </a>
               <button
                 onClick={() => setDark(!dark)}
@@ -265,8 +248,8 @@ export default function LandingPage() {
             >
               <div className="flex flex-col gap-4">
                 <a href="#features" className="text-sm font-medium text-stone-700 dark:text-stone-300">Features</a>
-                <a href="#how-it-works" className="text-sm font-medium text-stone-700 dark:text-stone-300">How It Works</a>
-                <a href="#testimonials" className="text-sm font-medium text-stone-700 dark:text-stone-300">Testimonials</a>
+                <a href="#how-it-works" className="text-sm font-medium text-stone-700 dark:text-stone-300">Workflow</a>
+                <a href="#market-insights" className="text-sm font-medium text-stone-700 dark:text-stone-300">NSE Feed</a>
                 <button
                   onClick={() => setDark(!dark)}
                   className="flex items-center gap-2 text-sm font-medium text-stone-700 dark:text-stone-300"
@@ -297,18 +280,18 @@ export default function LandingPage() {
           >
             <motion.div variants={fadeIn} className="mb-6 inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white/80 px-4 py-1.5 backdrop-blur-sm dark:border-stone-700 dark:bg-stone-800/80">
               <span className="flex h-2 w-2 rounded-full bg-[#F0867C]" />
-              <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">Trusted by 10,000+ investors</span>
+              <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">Nifty 200 Quantitative Research Platform</span>
             </motion.div>
 
             <motion.h1 variants={fadeIn} className="mb-6 font-display text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-              Invest Smarter with{" "}
+              Research Markets with{" "}
               <span className="bg-gradient-to-r from-[#F0867C] via-[#E3C87D] to-[#6E3559] bg-clip-text text-transparent">
                 Momentum
               </span>
             </motion.h1>
 
             <motion.p variants={fadeIn} className="mx-auto mb-10 max-w-2xl text-lg text-stone-800 dark:text-stone-300">
-              The professional investment platform built for serious traders. Real-time analytics, lightning-fast execution, and bank-grade security.
+              Screen 200 NSE equities, inspect 12-1 month volatility-adjusted signals, and backtest monthly portfolios with strict no-look-ahead discipline.
             </motion.p>
 
             <motion.div variants={fadeIn} className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -316,29 +299,29 @@ export default function LandingPage() {
                 to="/login"
                 className="group flex items-center gap-2 rounded-full bg-[#6E3559] px-8 py-4 text-base font-semibold text-white shadow-xl shadow-[#6E3559]/30 transition-all hover:scale-105 hover:bg-[#5D2C4B] dark:bg-[#8C4570] dark:shadow-[#8C4570]/30 dark:hover:bg-[#7A3B61]"
               >
-                Start Trading Now
+                Open Research Workspace
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
               <a
                 href="#features"
                 className="flex items-center gap-2 rounded-full border-2 border-stone-300 bg-white/80 px-8 py-4 text-base font-semibold text-stone-700 backdrop-blur-sm transition-all hover:scale-105 hover:border-[#6E3559] dark:border-stone-700 dark:bg-stone-800/80 dark:text-stone-300 dark:hover:border-[#F0867C]"
               >
-                Learn More
+                Explore Features
               </a>
             </motion.div>
 
             <motion.div variants={fadeIn} className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-stone-700 dark:text-stone-400">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-[#F0867C]" />
-                <span>No setup fees</span>
+                <span>Adjusted daily NSE bars</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-[#E3C87D]" />
-                <span>Cancel anytime</span>
+                <span>T+1 close execution lag</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-[#6E3559]" />
-                <span>24/7 support</span>
+                <span>Educational research only</span>
               </div>
             </motion.div>
           </motion.div>
@@ -609,53 +592,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto mb-16 max-w-3xl text-center"
-          >
-            <h2 className="mb-4 font-display text-4xl font-bold tracking-tight sm:text-5xl">
-              Trusted by Professionals
-            </h2>
-            <p className="text-lg text-stone-800 dark:text-stone-300">
-              See what our users are saying
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid gap-6 md:grid-cols-3"
-          >
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                variants={fadeIn}
-                className="rounded-2xl border border-stone-200 bg-white/80 p-8 shadow-lg backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/80"
-              >
-                <div className="mb-4 flex gap-1">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-[#E3C87D] text-[#E3C87D]" />
-                  ))}
-                </div>
-                <p className="mb-6 text-stone-700 dark:text-stone-300">"{testimonial.content}"</p>
-                <div>
-                  <p className="font-display font-bold">{testimonial.name}</p>
-                  <p className="text-sm text-stone-600 dark:text-stone-400">{testimonial.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
       {/* Final CTA */}
       <section className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
@@ -667,16 +603,16 @@ export default function LandingPage() {
             className="rounded-3xl border border-stone-200 bg-white/80 p-12 text-center shadow-2xl backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/80"
           >
             <h2 className="mb-4 font-display text-4xl font-bold tracking-tight sm:text-5xl">
-              Ready to Build Your Portfolio?
+              Explore the Quantitative Workspace
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-stone-800 dark:text-stone-300">
-              Join thousands of investors who trust Momentum Investment to grow their wealth.
+              Sign in to screen Nifty 200 momentum leaders, inspect indicator breakdowns, and backtest monthly rebalancing rules.
             </p>
             <Link
               to="/login"
               className="inline-flex items-center gap-2 rounded-full bg-[#6E3559] px-8 py-4 text-base font-semibold text-white shadow-xl shadow-[#6E3559]/30 transition-all hover:scale-105 hover:bg-[#5D2C4B] dark:bg-[#8C4570] dark:shadow-[#8C4570]/30 dark:hover:bg-[#7A3B61]"
             >
-              Get Started Now
+              Sign In to Workspace
               <ArrowRight className="h-5 w-5" />
             </Link>
           </motion.div>

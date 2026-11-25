@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Play, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, GitCompare, RotateCcw, SlidersHorizontal } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,61 +14,69 @@ import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
 import MathFormula from "../components/MathFormula";
 import { SkeletonTable } from "../components/Skeleton";
-import { ErrorState } from "../components/StateViews";
+import { EmptyState, ErrorState } from "../components/StateViews";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { formatPct, shortSymbol } from "../lib/format";
 
+const DEFAULTS = {
+  lookback: 252,
+  skip: 21,
+  top: 20,
+  method: "vol_adjusted",
+};
+
 export default function StrategyLab() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    as_of: "",
-    method: "vol_adjusted",
-    top: 20,
-    lookback: 252,
-    skip: 21,
-  });
-  const [applied, setApplied] = useState(form);
+  const [form, setForm] = useState(DEFAULTS);
+  const [debounced, setDebounced] = useState(DEFAULTS);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebounced(form);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [form]);
 
   const queryStr = useMemo(() => {
+    const safeSkip = Math.min(debounced.skip, debounced.lookback - 1);
     const p = new URLSearchParams({
-      method: applied.method,
-      top: String(applied.top),
-      lookback: String(applied.lookback),
-      skip: String(applied.skip),
+      method: debounced.method,
+      top: String(debounced.top),
+      lookback: String(debounced.lookback),
+      skip: String(safeSkip),
     });
-    if (applied.as_of) p.set("as_of", applied.as_of);
-    return `/api/signals?${p.toString()}`;
-  }, [applied]);
+    return `/api/strategy/preview?${p.toString()}`;
+  }, [debounced]);
 
   const { data, loading, error, refetch } = useCachedApi(queryStr);
 
-  const selectedOnly = useMemo(
-    () => (data?.signals || []).filter((s) => s.is_selected),
-    [data]
-  );
-
-  const sectorBreakdown = useMemo(() => {
-    const counts = {};
-    selectedOnly.forEach((s) => {
-      const sec = s.sector || "Other";
-      counts[sec] = (counts[sec] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .map(([sector, count]) => ({ sector, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [selectedOnly]);
-
-  const handleApply = (e) => {
-    e.preventDefault();
-    setApplied({ ...form });
-  };
+  const diffsFromDefault = useMemo(() => {
+    const diffs = [];
+    if (form.lookback !== DEFAULTS.lookback) {
+      diffs.push(`Lookback ${DEFAULTS.lookback}d → ${form.lookback}d`);
+    }
+    if (form.skip !== DEFAULTS.skip) {
+      diffs.push(`Skip ${DEFAULTS.skip}d → ${form.skip}d`);
+    }
+    if (form.top !== DEFAULTS.top) {
+      diffs.push(`Holdings ${DEFAULTS.top} → ${form.top}`);
+    }
+    if (form.method !== DEFAULTS.method) {
+      diffs.push(
+        `Scoring ${DEFAULTS.method} → ${form.method}`
+      );
+    }
+    return diffs;
+  }, [form]);
 
   const launchBacktest = () => {
+    const safeSkip = Math.min(form.skip, form.lookback - 1);
     const p = new URLSearchParams({
-      top_n: String(applied.top),
-      lookback: String(applied.lookback),
-      skip: String(applied.skip),
-      method: applied.method,
+      top_n: String(form.top),
+      lookback: String(form.lookback),
+      skip: String(safeSkip),
+      method: form.method,
+      autorun: "1",
     });
     navigate(`/backtest?${p.toString()}`);
   };
@@ -87,9 +95,16 @@ export default function StrategyLab() {
       sortable: true,
       defaultDir: "asc",
       render: (r) => (
-        <div>
-          <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
-          <div className="max-w-[210px] truncate text-xs text-stone-400">{r.name}</div>
+        <div className="flex items-center gap-2">
+          <div>
+            <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
+            <div className="max-w-[200px] truncate text-xs text-stone-400">{r.name}</div>
+          </div>
+          {!r.in_default && (
+            <span className="rounded-md border border-emerald-500/35 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+              NEW
+            </span>
+          )}
         </div>
       ),
     },
@@ -100,189 +115,287 @@ export default function StrategyLab() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className={r.momentum >= 0 ? "text-emerald-400" : "text-rose-400"}>
+        <span className={(r.momentum ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}>
           {formatPct(r.momentum, 2)}
         </span>
       ),
     },
     {
       key: "volatility",
-      label: "Volatility",
+      label: "Vol (Ann)",
       sortable: true,
       align: "right",
-      render: (r) => `${(r.volatility * 100).toFixed(2)}%`,
+      render: (r) => (r.volatility != null ? `${(r.volatility * 100).toFixed(2)}%` : "—"),
     },
     {
       key: "score",
       label: "Score",
       sortable: true,
       align: "right",
-      render: (r) => <span className="font-bold text-[#F0867C]">{r.score.toFixed(3)}</span>,
+      render: (r) => (
+        <span className="font-bold text-[#F0867C]">
+          {r.score != null ? r.score.toFixed(3) : "—"}
+        </span>
+      ),
     },
     {
-      key: "is_selected",
-      label: "Portfolio",
+      key: "weight",
+      label: "Weight",
       sortable: true,
-      render: (r) =>
-        r.is_selected ? (
-          <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
-            Selected
-          </span>
-        ) : (
-          <span className="text-xs text-stone-500">Reserve</span>
-        ),
+      align: "right",
+      render: (r) => `${(r.weight * 100).toFixed(2)}%`,
     },
   ];
 
+  const effectiveSkip = Math.min(form.skip, form.lookback - 1);
   const formulaLatex =
     form.method === "vol_adjusted"
-      ? `\\text{Score}_i = \\frac{P_{t-${form.skip}} / P_{t-${form.lookback}} - 1}{\\sigma_{${form.lookback}}(i)}`
-      : `\\text{Score}_i = \\frac{P_{t-${form.skip}}}{P_{t-${form.lookback}}} - 1`;
+      ? `\\text{Score}_i = \\frac{\\frac{P_{t-${effectiveSkip}}}{P_{t-${form.lookback}}} - 1}{\\sigma_{\\text{ann}, ${form.lookback}}(i)}, \\qquad w_i = \\frac{1}{${form.top}} = ${(
+          100 / form.top
+        ).toFixed(2)}\\%`
+      : `\\text{Score}_i = \\frac{P_{t-${effectiveSkip}}}{P_{t-${form.lookback}}} - 1, \\qquad w_i = \\frac{1}{${form.top}} = ${(
+          100 / form.top
+        ).toFixed(2)}\\%`;
+
+  const comp = data?.comparison_to_default;
 
   return (
     <AppLayout
       title="Strategy Lab"
-      subtitle="Experiment with lookback, skip horizon, and volatility weighting on historical dates"
+      subtitle="Interactive live signal tuner with debounced updates across lookback, skip, and portfolio size"
       actions={
-        <button
-          type="button"
-          onClick={launchBacktest}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-[#8C4570] px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg transition hover:bg-[#7A3B61]"
-        >
-          Backtest This Config
-          <ArrowRight className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {diffsFromDefault.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setForm(DEFAULTS)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={launchBacktest}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-3.5 py-1.5 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+          >
+            Run backtest with these settings
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       }
     >
       <div className="space-y-6">
-        <form
-          onSubmit={handleApply}
-          className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg lg:grid-cols-12"
-        >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5 lg:col-span-8">
-            <label className="text-xs text-stone-400">
-              As-Of Date (optional)
+        {/* Sliders + live KaTeX formula */}
+        <section className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-7">
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-stone-300">Lookback Horizon</span>
+                <span className="font-bold text-[#F0867C]">{form.lookback} trading days</span>
+              </div>
               <input
-                type="date"
-                value={form.as_of}
-                onChange={(e) => setForm((p) => ({ ...p, as_of: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-
-            <label className="text-xs text-stone-400">
-              Scoring Method
-              <select
-                value={form.method}
-                onChange={(e) => setForm((p) => ({ ...p, method: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              >
-                <option value="vol_adjusted">Vol-Adjusted</option>
-                <option value="raw">Raw Momentum</option>
-              </select>
-            </label>
-
-            <label className="text-xs text-stone-400">
-              Top N ({form.top})
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={form.top}
-                onChange={(e) => setForm((p) => ({ ...p, top: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-
-            <label className="text-xs text-stone-400">
-              Lookback Days
-              <input
-                type="number"
+                type="range"
                 min={60}
                 max={504}
+                step={1}
                 value={form.lookback}
-                onChange={(e) => setForm((p) => ({ ...p, lookback: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
+                onChange={(e) => {
+                  const lb = Number(e.target.value);
+                  setForm((p) => ({ ...p, lookback: lb, skip: Math.min(p.skip, lb - 1) }));
+                }}
+                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
               />
-            </label>
-
-            <label className="text-xs text-stone-400">
-              Skip Days
-              <input
-                type="number"
-                min={0}
-                max={63}
-                value={form.skip}
-                onChange={(e) => setForm((p) => ({ ...p, skip: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-          </div>
-
-          <div className="flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#07080F] p-3.5 lg:col-span-4">
-            <div className="flex items-center justify-between text-xs text-stone-400">
-              <span className="inline-flex items-center gap-1.5 font-medium">
-                <SlidersHorizontal className="h-3.5 w-3.5 text-[#F0867C]" />
-                Active Formula
-              </span>
-              {data?.as_of && <span>Used: {data.as_of}</span>}
+              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
+                <span>60d (~3M)</span>
+                <span>252d (1Y)</span>
+                <span>504d (2Y)</span>
+              </div>
             </div>
-            <MathFormula display math={formulaLatex} />
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-2 text-xs font-bold text-white transition hover:brightness-110"
-            >
-              <Play className="h-3.5 w-3.5" fill="currentColor" />
-              Compute Signals
-            </button>
+
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-stone-300">Skip Recent Days</span>
+                <span className="font-bold text-[#F0867C]">{effectiveSkip} trading days</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={Math.min(63, form.lookback - 1)}
+                step={1}
+                value={effectiveSkip}
+                onChange={(e) => setForm((p) => ({ ...p, skip: Number(e.target.value) }))}
+                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+              />
+              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
+                <span>0d (no skip)</span>
+                <span>21d (1M)</span>
+                <span>63d (3M)</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-stone-300">Portfolio Top N</span>
+                <span className="font-bold text-[#F0867C]">{form.top} stocks</span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={50}
+                step={1}
+                value={form.top}
+                onChange={(e) => setForm((p) => ({ ...p, top: Number(e.target.value) }))}
+                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+              />
+              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
+                <span>5 (Concentrated)</span>
+                <span>20 (Default)</span>
+                <span>50 (Broad)</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+              <span className="text-xs font-medium text-stone-300">Scoring Method</span>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {[
+                  { id: "vol_adjusted", label: "Vol-Adjusted" },
+                  { id: "raw", label: "Raw Momentum" },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, method: opt.id }))}
+                    className={`rounded-lg border py-2 text-xs font-semibold transition ${
+                      form.method === opt.id
+                        ? "border-[#F0867C]/50 bg-[#8C4570]/45 text-white"
+                        : "border-white/10 bg-white/[0.03] text-stone-400 hover:text-white"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </form>
+
+          {/* Live KaTeX formula + What changed vs defaults */}
+          <div className="flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#07080F] p-4 lg:col-span-5">
+            <div>
+              <div className="flex items-center justify-between text-xs text-stone-400">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-[#F0867C]">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Live Signal Formula
+                </span>
+                {data?.as_of && <span>As of {data.as_of}</span>}
+              </div>
+              <div className="mt-2">
+                <MathFormula display math={formulaLatex} />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs">
+              <div className="flex items-center gap-1.5 font-semibold text-white">
+                <GitCompare className="h-3.5 w-3.5 text-amber-300" />
+                What Changed vs Defaults (252 / 21 / Top 20 / Vol-Adj)
+              </div>
+              {diffsFromDefault.length === 0 ? (
+                <p className="mt-1 text-stone-400">
+                  Using canonical baseline parameters ({data?.universe_size || "—"} eligible stocks).
+                </p>
+              ) : (
+                <div className="mt-1.5 space-y-1 text-stone-300">
+                  <p>{diffsFromDefault.join(" · ")}</p>
+                  {comp && (
+                    <p className="text-stone-400">
+                      Overlap with default Top 20:{" "}
+                      <strong className="text-white">{comp.overlap_count}</strong> stocks
+                      {comp.added.length > 0 && (
+                        <>
+                          {" "}· Added:{" "}
+                          <span className="text-emerald-300">
+                            {comp.added.slice(0, 5).map(shortSymbol).join(", ")}
+                            {comp.added.length > 5 ? ` +${comp.added.length - 5}` : ""}
+                          </span>
+                        </>
+                      )}
+                      {comp.removed.length > 0 && (
+                        <>
+                          {" "}· Dropped:{" "}
+                          <span className="text-rose-300">
+                            {comp.removed.slice(0, 5).map(shortSymbol).join(", ")}
+                            {comp.removed.length > 5 ? ` +${comp.removed.length - 5}` : ""}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
         {loading && !data ? (
-          <SkeletonTable rows={10} cols={6} />
+          <SkeletonTable rows={10} cols={7} />
         ) : error ? (
-          <ErrorState title="Signal computation failed" message={error} onRetry={refetch} />
+          <ErrorState title="Could not preview strategy" message={error} onRetry={refetch} />
+        ) : !data?.portfolio?.length ? (
+          <EmptyState
+            title="No eligible stocks"
+            description="Try shortening the lookback window so more stocks meet the minimum history rule."
+          />
         ) : (
           <div className="space-y-6">
-            {sectorBreakdown.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                <h2 className="font-display text-base font-bold text-white">
-                  Sector Allocation of Top {selectedOnly.length} Selection
-                </h2>
-                <p className="mb-3 text-xs text-stone-400">
-                  Equal-weight count across sectors as of {data?.as_of}
-                </p>
-                <div className="h-[220px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={sectorBreakdown} margin={{ top: 4, right: 12, left: -12, bottom: 24 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                      <XAxis
-                        dataKey="sector"
-                        tick={{ fill: "#a8a29e", fontSize: 10 }}
-                        interval={0}
-                        angle={-18}
-                        textAnchor="end"
-                        height={54}
-                      />
-                      <YAxis allowDecimals={false} tick={{ fill: "#a8a29e", fontSize: 11 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#141220",
-                          borderColor: "rgba(255,255,255,0.12)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
-                      />
-                      <Bar dataKey="count" name="Selected Stocks" fill="#F0867C" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-display text-base font-bold text-white">
+                    Sector Allocation ({data.portfolio.length} Selected Holdings)
+                  </h2>
+                  <p className="text-xs text-stone-400">
+                    Equal weight {(100 / data.portfolio.length).toFixed(2)}% per position · Universe: {data.universe_size} eligible stocks
+                  </p>
                 </div>
-              </section>
-            )}
+                {loading && (
+                  <span className="text-xs font-medium text-[#F0867C]">Updating preview...</span>
+                )}
+              </div>
+
+              <div className="h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.sectors}
+                    margin={{ top: 4, right: 12, left: -12, bottom: 24 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis
+                      dataKey="sector"
+                      tick={{ fill: "#a8a29e", fontSize: 10 }}
+                      interval={0}
+                      angle={-18}
+                      textAnchor="end"
+                      height={54}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fill: "#a8a29e", fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#141220",
+                        borderColor: "rgba(255,255,255,0.12)",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Bar dataKey="count" name="Holdings" fill="#F0867C" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
 
             <DataTable
               columns={columns}
-              rows={data?.signals || []}
+              rows={data.portfolio}
               defaultSortKey="rank"
               defaultSortDir="asc"
               pageSize={25}
