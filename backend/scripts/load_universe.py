@@ -1,4 +1,4 @@
-"""Load Nifty 200 constituents from backend/data/nifty200.csv into the stocks table."""
+"""Load Nifty 500 constituents from backend/data/nifty500.csv into the stocks table."""
 
 import csv
 import os
@@ -8,7 +8,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-DEFAULT_CSV_PATH = os.path.join(BACKEND_DIR, "data", "nifty200.csv")
+DEFAULT_CSV_PATH = os.path.join(BACKEND_DIR, "data", "nifty500.csv")
 
 
 def normalize_ns_symbol(symbol: str) -> str:
@@ -18,17 +18,21 @@ def normalize_ns_symbol(symbol: str) -> str:
 
 
 def upsert_universe(csv_path: str = DEFAULT_CSV_PATH) -> tuple[int, int]:
-    """Read constituents CSV and upsert rows into the stocks table."""
-    from models import Stock, db
+    """Read constituents CSV, upsert rows, and deactivate symbols not in CSV."""
+    from models import Stock, db, ensure_schema_columns
+
+    ensure_schema_columns()
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
             f"Universe CSV not found at {csv_path}. "
-            "Download ind_nifty200list.csv from niftyindices.com and save it there."
+            "Download ind_nifty500list.csv from niftyindices.com and save it there "
+            "with columns: Company Name, Industry, Symbol."
         )
 
     inserted = 0
     updated = 0
+    active_symbols: set[str] = set()
 
     with open(csv_path, mode="r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -38,6 +42,7 @@ def upsert_universe(csv_path: str = DEFAULT_CSV_PATH) -> tuple[int, int]:
                 continue
 
             symbol = normalize_ns_symbol(raw_symbol)
+            active_symbols.add(symbol)
             name = (row.get("Company Name") or raw_symbol).strip()
             sector = (row.get("Industry") or "").strip() or None
 
@@ -52,6 +57,11 @@ def upsert_universe(csv_path: str = DEFAULT_CSV_PATH) -> tuple[int, int]:
                 stock.sector = sector
                 stock.is_active = True
                 updated += 1
+
+    if active_symbols:
+        Stock.query.filter(~Stock.symbol.in_(active_symbols)).update(
+            {"is_active": False}, synchronize_session=False
+        )
 
     db.session.commit()
     return inserted, updated

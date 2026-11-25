@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from sqlalchemy.orm import validates
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -51,6 +52,8 @@ class Stock(db.Model):
     symbol = db.Column(db.String(32), unique=True, index=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
     sector = db.Column(db.String(255), nullable=True)
+    market_cap = db.Column(db.Float, nullable=True)
+    last_updated = db.Column(db.DateTime(timezone=True), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     prices = db.relationship("Price", back_populates="stock", cascade="all, delete-orphan")
@@ -163,3 +166,16 @@ class BacktestRun(db.Model):
             "metrics": self.metrics,
             **(self.result or {}),
         }
+
+
+def ensure_schema_columns() -> None:
+    """Safely add new columns to existing SQLite tables if missing."""
+    existing_cols = {
+        row[1]
+        for row in db.session.execute(text("PRAGMA table_info(stocks)")).all()
+    }
+    if "market_cap" not in existing_cols:
+        db.session.execute(text("ALTER TABLE stocks ADD COLUMN market_cap FLOAT"))
+    if "last_updated" not in existing_cols:
+        db.session.execute(text("ALTER TABLE stocks ADD COLUMN last_updated DATETIME"))
+    db.session.commit()

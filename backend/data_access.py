@@ -98,3 +98,63 @@ def load_benchmark_series(
     series = pd.Series(values, index=dates, name=symbol, dtype=float)
     series.index.name = "date"
     return series.sort_index()
+
+
+def load_market_matrices(
+    session: Session,
+    start: date | str | None = None,
+    end: date | str | None = None,
+    active_only: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Load aligned adjusted close and volume matrices in a single SQL query.
+
+    Returns ``(close_df, volume_df)`` with sorted ``DatetimeIndex`` dates and
+    stock symbols as columns.
+    """
+    start_date = date.fromisoformat(start) if isinstance(start, str) else start
+    end_date = date.fromisoformat(end) if isinstance(end, str) else end
+
+    query = session.query(Price.date, Stock.symbol, Price.close, Price.volume).join(
+        Stock, Price.stock_id == Stock.id
+    )
+    if active_only:
+        query = query.filter(Stock.is_active.is_(True))
+    if start_date is not None:
+        query = query.filter(Price.date >= start_date)
+    if end_date is not None:
+        query = query.filter(Price.date <= end_date)
+
+    rows = query.order_by(Price.date.asc(), Stock.symbol.asc()).all()
+    if not rows:
+        empty_idx = pd.DatetimeIndex([], name="date")
+        return pd.DataFrame(index=empty_idx), pd.DataFrame(index=empty_idx)
+
+    raw = pd.DataFrame(rows, columns=["date", "symbol", "close", "volume"])
+    close_df = raw.pivot(index="date", columns="symbol", values="close")
+    vol_df = raw.pivot(index="date", columns="symbol", values="volume")
+
+    for df in (close_df, vol_df):
+        df.index = pd.to_datetime(df.index)
+        df.index.name = "date"
+        df.columns.name = None
+
+    return close_df.sort_index().astype(float), vol_df.sort_index().astype(float)
+
+
+def load_stock_metadata(session: Session, active_only: bool = True) -> list[dict]:
+    """Load stock metadata including cached market_cap and last_updated."""
+    query = session.query(Stock)
+    if active_only:
+        query = query.filter(Stock.is_active.is_(True))
+    stocks = query.order_by(Stock.symbol.asc()).all()
+    return [
+        {
+            "symbol": s.symbol,
+            "name": s.name,
+            "sector": s.sector or "Other",
+            "market_cap": s.market_cap,
+            "last_updated": s.last_updated.isoformat() if s.last_updated else None,
+        }
+        for s in stocks
+    ]
