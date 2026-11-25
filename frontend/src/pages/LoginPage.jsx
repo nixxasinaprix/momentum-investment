@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Zap, Eye, EyeOff, Check, ArrowRight, Loader2, ChevronLeft,
   Sun, Moon, ShieldCheck, KeyRound, TrendingUp, Clock,
 } from "lucide-react";
 import Grainient from "../components/grainient";
 import SceneryBackground from "../components/SceneryBackground";
+import { useAuth } from "../context/AuthContext";
 
 /* ---------- animation variants ---------- */
 const card = {
@@ -65,11 +67,15 @@ const GoogleIcon = ({ className }) => (
 
 /* ---------- page ---------- */
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, signup } = useAuth();
   const [dark, setDark] = useState(false);
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
   const [quoteIndex, setQuoteIndex] = useState(0);
 
   useEffect(() => {
@@ -84,14 +90,31 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleSubmit = (e) => {
+  const switchMode = (nextMode) => {
+    if (status !== "idle") return;
+    setMode(nextMode);
+    setError("");
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (status !== "idle") return;
+    setError("");
     setStatus("loading");
-    setTimeout(() => {
+    try {
+      if (mode === "signup") {
+        await signup(email, password);
+      } else {
+        await login(email, password);
+      }
       setStatus("success");
-      setTimeout(() => setStatus("idle"), 2200);
-    }, 1600);
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+      }, 500);
+    } catch (err) {
+      setError(err.message || "Authentication failed");
+      setStatus("idle");
+    }
   };
 
   return (
@@ -146,6 +169,7 @@ export default function LoginPage() {
             <motion.button
               variants={item}
               type="button"
+              onClick={() => navigate("/")}
               aria-label="Go back"
               className="absolute left-5 top-5 z-10 text-white/90 transition-colors duration-300 hover:text-white"
             >
@@ -156,20 +180,57 @@ export default function LoginPage() {
               variants={item}
               className="absolute left-7 top-24 z-10 font-display text-[32px] font-bold leading-[1.15] text-white"
             >
-              Welcome
-              <br />
-              Back
+              {mode === "signup" ? (
+                <>
+                  Create
+                  <br />
+                  Account
+                </>
+              ) : (
+                <>
+                  Welcome
+                  <br />
+                  Back
+                </>
+              )}
             </motion.h1>
 
             <form onSubmit={handleSubmit} className="relative z-10 px-7 pb-8 pt-72 sm:px-8">
 
-              <motion.div variants={item} className="mb-7 flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#F0867C] to-[#6E3559] shadow-md">
-                  <Zap className="h-4 w-4 text-white" fill="currentColor" />
+              <motion.div variants={item} className="mb-5 flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#F0867C] to-[#6E3559] shadow-md">
+                    <Zap className="h-4 w-4 text-white" fill="currentColor" />
+                  </div>
+                  <span className="font-display text-sm font-bold tracking-tight text-stone-800 transition-colors duration-700 dark:text-stone-100">
+                    Momentum Investment
+                  </span>
                 </div>
-                <span className="font-display text-sm font-bold tracking-tight text-stone-800 transition-colors duration-700 dark:text-stone-100">
-                  Momentum Investment
-                </span>
+
+                <div className="inline-flex rounded-full border border-stone-300/80 bg-white/70 p-0.5 text-xs font-semibold dark:border-stone-700 dark:bg-stone-800/80">
+                  <button
+                    type="button"
+                    onClick={() => switchMode("login")}
+                    className={`rounded-full px-2.5 py-1 transition-colors ${
+                      mode === "login"
+                        ? "bg-[#6E3559] text-white dark:bg-[#8C4570]"
+                        : "text-stone-600 hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
+                    }`}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchMode("signup")}
+                    className={`rounded-full px-2.5 py-1 transition-colors ${
+                      mode === "signup"
+                        ? "bg-[#6E3559] text-white dark:bg-[#8C4570]"
+                        : "text-stone-600 hover:text-stone-900 dark:text-stone-300 dark:hover:text-white"
+                    }`}
+                  >
+                    Sign up
+                  </button>
+                </div>
               </motion.div>
 
               <motion.div variants={item}>
@@ -183,7 +244,10 @@ export default function LoginPage() {
                   required
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError("");
+                  }}
                   className="mt-1 w-full border-b border-stone-400/60 bg-transparent py-2 text-[15px] font-semibold text-stone-800 outline-none transition-colors duration-300 placeholder:text-stone-300 focus:border-[#6E3559] dark:border-stone-600/60 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:border-[#F0867C]"
                 />
               </motion.div>
@@ -195,11 +259,14 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type={showPw ? "text" : "password"}
-                  autoComplete="current-password"
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   required
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                  }}
                   className="mt-1 w-full border-b border-stone-400/60 bg-transparent py-2 pr-16 text-[15px] font-semibold text-stone-800 outline-none transition-colors duration-300 placeholder:text-stone-300 focus:border-[#6E3559] dark:border-stone-600/60 dark:text-stone-100 dark:placeholder:text-stone-600 dark:focus:border-[#F0867C]"
                 />
                 <button
@@ -210,6 +277,11 @@ export default function LoginPage() {
                 >
                   {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+                {error && (
+                  <p role="alert" className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
+                )}
               </motion.div>
 
               {/* 🔗 Google + Broker Key buttons */}
@@ -244,13 +316,15 @@ export default function LoginPage() {
               </motion.div>
 
               <motion.div variants={item} className="mt-7 flex items-center justify-between">
-                <span className="font-display text-xl font-bold text-stone-900 transition-colors duration-700 dark:text-stone-50">Sign in</span>
+                <span className="font-display text-xl font-bold text-stone-900 transition-colors duration-700 dark:text-stone-50">
+                  {mode === "signup" ? "Sign up" : "Sign in"}
+                </span>
                 <motion.button
                   type="submit"
                   disabled={status !== "idle"}
                   whileHover={{ scale: 1.06 }}
                   whileTap={{ scale: 0.94 }}
-                  aria-label="Sign in"
+                  aria-label={mode === "signup" ? "Sign up" : "Sign in"}
                   className="flex h-14 w-14 items-center justify-center rounded-full bg-[#6E3559] text-white shadow-lg shadow-[#6E3559]/40 transition-colors duration-300 hover:bg-[#5D2C4B] disabled:opacity-80 dark:bg-[#8C4570] dark:shadow-[#8C4570]/40 dark:hover:bg-[#7A3B61]"
                 >
                   <AnimatePresence mode="wait" initial={false}>
@@ -272,9 +346,13 @@ export default function LoginPage() {
               </motion.div>
 
               <motion.div variants={item} className="mt-7 flex items-center justify-between text-sm font-bold text-stone-800 transition-colors duration-700 dark:text-stone-100">
-                <a href="#" className="underline decoration-stone-800/60 underline-offset-4 transition-colors duration-300 hover:decoration-[#6E3559] hover:text-[#6E3559] dark:decoration-stone-100/60 dark:hover:decoration-[#F0867C] dark:hover:text-[#F0867C]">
-                  Sign up
-                </a>
+                <button
+                  type="button"
+                  onClick={() => switchMode(mode === "login" ? "signup" : "login")}
+                  className="underline decoration-stone-800/60 underline-offset-4 transition-colors duration-300 hover:decoration-[#6E3559] hover:text-[#6E3559] dark:decoration-stone-100/60 dark:hover:decoration-[#F0867C] dark:hover:text-[#F0867C]"
+                >
+                  {mode === "login" ? "Sign up" : "Log in"}
+                </button>
                 <a href="#" className="underline decoration-stone-800/60 underline-offset-4 transition-colors duration-300 hover:decoration-[#6E3559] hover:text-[#6E3559] dark:decoration-stone-100/60 dark:hover:decoration-[#F0867C] dark:hover:text-[#F0867C]">
                   Forgot Password
                 </a>

@@ -27,6 +27,8 @@ dist-ssr
 __pycache__/
 *.pyc
 venv/
+*.db
+instance/
 
 # Environment
 .env

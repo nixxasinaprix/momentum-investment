@@ -1,12 +1,28 @@
-import json
+import os
 import time
 import threading
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS
-import market_data
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
+from auth import auth_bp  # noqa: E402
+from models import db  # noqa: E402
+import market_data  # noqa: E402
 
 app = Flask(__name__)
-CORS(app)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///momentum.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+CORS(app, allow_headers=["Content-Type", "Authorization"])
+db.init_app(app)
+app.register_blueprint(auth_bp)
+
+with app.app_context():
+    db.create_all()
 
 # ═══════════════════════════════════════════════════════
 # 📦 BASELINE / SEED DATA
