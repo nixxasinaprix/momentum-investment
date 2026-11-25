@@ -11,6 +11,7 @@ from auth import auth_bp  # noqa: E402
 from backtest_routes import backtest_bp  # noqa: E402
 from market_routes import market_bp  # noqa: E402
 from models import db  # noqa: E402
+from research_routes import research_bp  # noqa: E402
 from signals_routes import signals_bp  # noqa: E402
 import market_data  # noqa: E402
 
@@ -25,6 +26,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(backtest_bp)
 app.register_blueprint(market_bp)
+app.register_blueprint(research_bp)
 app.register_blueprint(signals_bp)
 
 with app.app_context():
