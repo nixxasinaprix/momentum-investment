@@ -15,9 +15,13 @@ A full-stack investment platform landing page and authentication portal featurin
 │   └── package.json
 ├── backend/                # Flask API & NSE market data worker
 │   ├── auth.py             # JWT authentication blueprint & login_required
+│   ├── data/               # Nifty 200 universe CSV (nifty200.csv)
 │   ├── market_data.py      # Yahoo Finance fetcher & Redis/in-memory cache
-│   ├── models.py           # SQLAlchemy User model
+│   ├── market_routes.py    # Protected /api/stocks and /api/prices endpoints
+│   ├── models.py           # SQLAlchemy User, Stock, and Price models
+│   ├── scripts/            # Universe loader and daily price ingestion CLI
 │   ├── server.py           # Flask server and background refresh daemon
+│   ├── tests/              # pytest test suite
 │   ├── .env.example
 │   └── requirements.txt
 └── .gitignore
@@ -60,6 +64,37 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `POST /api/auth/signup` — Register with `{ email, password }` (returns `201` `{ token, user }`)
 - `POST /api/auth/login` — Sign in with `{ email, password }` (returns `200` `{ token, user }`)
 - `GET /api/auth/me` — Protected endpoint requiring `Authorization: Bearer <token>` (returns `200` `{ user }`)
+- `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
+- `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
+
+#### Historical Market Data Ingestion
+
+From `backend/`, populate the Nifty 200 stock universe and download ~6 years of daily adjusted OHLCV history:
+
+```bash
+cd backend
+python -m scripts.ingest_prices --full
+```
+
+Fetch only new trading days after each stock's latest stored date:
+
+```bash
+python -m scripts.ingest_prices --incremental
+```
+
+You can test with a subset of symbols using `--symbols RELIANCE.NS TCS.NS`.
+
+#### Data Notes
+
+- **Survivorship bias**: `backend/data/nifty200.csv` reflects today's Nifty 200 constituents rather than historical point-in-time index membership, so backtests using this universe are subject to survivorship bias.
+- **Adjusted prices**: All daily OHLC prices are downloaded with `yfinance` `auto_adjust=True`, adjusting historical prices for stock splits, bonuses, and dividends so corporate actions do not create artificial price jumps.
+
+#### Backend Tests
+
+```bash
+cd backend
+pytest
+```
 
 ### 2. Frontend
 

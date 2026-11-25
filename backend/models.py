@@ -40,3 +40,63 @@ class User(db.Model):
             "id": self.id,
             "email": self.email,
         }
+
+
+class Stock(db.Model):
+    """Tracked NSE stock in the investment universe."""
+
+    __tablename__ = "stocks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(32), unique=True, index=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    sector = db.Column(db.String(255), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+
+    prices = db.relationship("Price", back_populates="stock", cascade="all, delete-orphan")
+
+    def to_dict(self) -> dict:
+        """Return public stock metadata."""
+        return {
+            "symbol": self.symbol,
+            "name": self.name,
+            "sector": self.sector,
+        }
+
+
+class Price(db.Model):
+    """
+    Daily adjusted OHLCV price bar for a stock.
+
+    Prices are fetched with yfinance `auto_adjust=True` so splits, bonuses,
+    and dividends are adjusted retroactively and do not create fake price jumps
+    in momentum signals or backtests.
+    """
+
+    __tablename__ = "prices"
+    __table_args__ = (
+        db.UniqueConstraint("stock_id", "date", name="uq_prices_stock_date"),
+        db.Index("ix_prices_stock_date", "stock_id", "date"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey("stocks.id"), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    open = db.Column(db.Float, nullable=True)
+    high = db.Column(db.Float, nullable=True)
+    low = db.Column(db.Float, nullable=True)
+    close = db.Column(db.Float, nullable=False)
+    volume = db.Column(db.BigInteger, nullable=True)
+
+    stock = db.relationship("Stock", back_populates="prices")
+
+    def to_dict(self) -> dict:
+        """Return serialized OHLCV bar."""
+        return {
+            "date": self.date.isoformat(),
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+            "volume": self.volume,
+        }
