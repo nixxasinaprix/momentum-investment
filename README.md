@@ -1,15 +1,28 @@
 # Momentum Investment
 
-A full-stack investment platform landing page and authentication portal featuring live NSE (NIFTY 500) market insights, top gainers/losers, and Redis-backed caching with an automatic in-memory fallback.
+A full-stack quantitative momentum research platform and authentication portal for the NSE Nifty 200 universe, featuring live NIFTY 500 market insights, technical indicators, cross-sectional screening, strategy simulation, and historical backtesting.
+
+## Features
+
+- **Market Overview (`/dashboard`)**: Live breadth chart (% above 50/200DMA), KPI cards, Top 10 & Bottom 10 momentum lists with 30-day sparklines, and an interactive sector momentum heatmap.
+- **Momentum Screener (`/screener`)**: Full 200-stock sortable & paginated table with search, sector & trend-regime filters, minimum-score slider, toggleable columns, CSV export, and `localStorage` watchlist stars.
+- **Stock Deep-Dive (`/stock/:symbol`)**: Interactive price chart with SMA 20/50/200 toggles and `1y`/`3y`/`5y` range selector, volume & RSI(14) charts, plain-English trend verdict, monthly rank history, and step-by-step KaTeX score breakdown.
+- **Stock Compare (`/compare`)**: Side-by-side normalized performance chart (`Base = 100`) and full indicator comparison for up to 4 stocks.
+- **Strategy Lab (`/strategy-lab`)**: Real-time `/api/signals` explorer with adjustable lookback, skip window, top-N, and scoring method plus KaTeX formula preview.
+- **Backtester (`/backtest`)**: Monthly-rebalanced historical simulation with `T+1` close execution lag, transaction cost modeling, benchmark comparison (`^CNX200`), drawdown & yearly return charts, and saved user runs.
+- **Methodology & Watchlist (`/learn`, `/watchlist`)**: Interactive KaTeX quantitative reference and persistent watchlist view.
 
 ## Project Structure
 
 ```text
-├── frontend/               # React + Vite + Tailwind CSS client
+├── frontend/               # React + Vite + Tailwind CSS + Recharts + KaTeX
 │   ├── public/
 │   ├── src/
-│   │   ├── components/     # Animated shader/scenery backgrounds
-│   │   └── pages/          # LandingPage and LoginPage
+│   │   ├── components/     # AppLayout, DataTable, StatCard, TrendBadge, Sparkline, SectorHeatmap, MathFormula
+│   │   ├── context/        # AuthContext (JWT session)
+│   │   ├── hooks/          # useCachedApi (in-memory TTL cache), useWatchlist (localStorage)
+│   │   ├── lib/            # API client & INR/percent/CSV formatters
+│   │   └── pages/          # Dashboard, Screener, StockDetail, Compare, StrategyLab, Backtest, Learn, Watchlist
 │   ├── .env.example
 │   ├── index.html
 │   └── package.json
@@ -19,9 +32,11 @@ A full-stack investment platform landing page and authentication portal featurin
 │   ├── backtest_routes.py  # Protected /api/backtest and /api/backtests endpoints
 │   ├── data/               # Nifty 200 universe CSV (nifty200.csv)
 │   ├── data_access.py      # Database-to-DataFrame price & benchmark loaders
+│   ├── indicators.py       # Pure pandas SMA, RSI(14), 52W high/low, relative strength, trend rules
 │   ├── market_data.py      # Yahoo Finance fetcher & Redis/in-memory cache
 │   ├── market_routes.py    # Protected /api/stocks and /api/prices endpoints
 │   ├── models.py           # SQLAlchemy User, Stock, Price, BenchmarkPrice, BacktestRun
+│   ├── research_routes.py  # Protected /api/screener, /api/market/overview, /api/stocks/<symbol>/analysis
 │   ├── scripts/            # Universe, price, benchmark, signal, and backtest CLIs
 │   ├── server.py           # Flask server and background refresh daemon
 │   ├── signals.py          # Pure pandas/numpy momentum signal engine
@@ -72,6 +87,9 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
 - `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
 - `GET /api/signals?as_of=YYYY-MM-DD&method=vol_adjusted&top=20&lookback=252&skip=21` — Protected endpoint returning momentum scores, rankings, and top selections as of a given date
+- `GET /api/screener` — Protected, cached endpoint returning full-universe indicators, returns, scores, ranks, and trend labels
+- `GET /api/stocks/<symbol>/analysis?range=1y|3y|5y` — Protected endpoint returning SMA/RSI/relative-strength series, monthly rank history, and step-by-step score breakdown
+- `GET /api/market/overview` — Protected, cached endpoint returning top/bottom 10 momentum leaders, sector heatmap metrics, and breadth history
 - `POST /api/backtest` — Protected endpoint validating parameters, running a monthly momentum backtest, saving a `BacktestRun`, and returning metrics, yearly returns, equity curve, and rebalances
 - `GET /api/backtests` — Protected endpoint listing the logged-in user's saved backtest runs (headline metrics)
 - `GET /api/backtests/<id>` — Protected endpoint returning the full saved backtest result (`404` if not found or owned by another user)
