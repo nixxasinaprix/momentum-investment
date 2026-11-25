@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Columns, Download, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
@@ -7,11 +7,13 @@ import Sparkline from "../components/Sparkline";
 import { SkeletonTable } from "../components/Skeleton";
 import { ErrorState } from "../components/StateViews";
 import TrendBadge from "../components/TrendBadge";
+import { usePipelineParams } from "../context/PipelineContext";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { exportRowsToCsv, formatINR, formatPct, shortSymbol } from "../lib/format";
 
 const OPTIONAL_COLUMNS = [
+  { key: "market_cap_cr", label: "Market Cap", defaultVisible: true },
   { key: "ret_1m", label: "1M Return", defaultVisible: true },
   { key: "ret_3m", label: "3M Return", defaultVisible: true },
   { key: "ret_6m", label: "6M Return", defaultVisible: true },
@@ -42,6 +44,7 @@ function ReturnCell({ value }) {
 export default function Screener() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { params: pipelineParams } = usePipelineParams();
   const { data, loading, error, refetch } = useCachedApi("/api/screener");
   const { isWatched, toggleWatchlist } = useWatchlist();
 
@@ -196,6 +199,18 @@ export default function Screener() {
     ];
 
     const optionalMap = {
+      market_cap_cr: {
+        key: "market_cap_cr",
+        label: "Mkt Cap",
+        sortable: true,
+        align: "right",
+        render: (row) =>
+          row.market_cap_cr != null
+            ? row.market_cap_cr >= 100000
+              ? `₹${(row.market_cap_cr / 100000).toFixed(2)}L Cr`
+              : `₹${Math.round(row.market_cap_cr).toLocaleString("en-IN")} Cr`
+            : "Unknown",
+      },
       ret_1m: {
         key: "ret_1m",
         label: "1M",
@@ -297,13 +312,13 @@ export default function Screener() {
       { key: "rsi_14", label: "RSI(14)", exportValue: (r) => (r.rsi_14 != null ? r.rsi_14.toFixed(2) : "") },
       { key: "trend", label: "Trend" },
     ];
-    exportRowsToCsv(`nifty200_screener_${data?.as_of || "latest"}.csv`, csvCols, filteredRows);
+    exportRowsToCsv(`nifty500_screener_${data?.as_of || "latest"}.csv`, csvCols, filteredRows);
   };
 
   return (
     <AppLayout
       title="Momentum Screener"
-      subtitle={`Filter and rank all ${stocks.length} Nifty 200 constituents · As of ${data?.as_of || "—"}`}
+      subtitle={`Filter and rank all ${stocks.length} Nifty 500 constituents · As of ${data?.as_of || "—"}`}
       actions={
         <button
           type="button"
@@ -322,6 +337,22 @@ export default function Screener() {
         <ErrorState title="Failed to load screener" message={error} onRetry={refetch} />
       ) : (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#12131F]/80 px-4 py-2.5 text-xs text-stone-300">
+            <span>
+              Active Strategy Settings: <strong>{pipelineParams.method}</strong> · Lookback{" "}
+              <strong>{pipelineParams.lookback_days}d</strong> / Skip{" "}
+              <strong>{pipelineParams.skip_days}d</strong> · Top{" "}
+              <strong>{pipelineParams.top_n}</strong>
+            </span>
+            <div className="flex items-center gap-3">
+              <Link to="/picks" className="font-semibold text-[#F0867C] hover:underline">
+                View Today&apos;s Picks
+              </Link>
+              <Link to="/strategy" className="text-stone-400 hover:text-white">
+                Edit in Strategy Builder
+              </Link>
+            </div>
+          </div>
           {/* Filters toolbar */}
           <div className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-4 shadow-lg">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">

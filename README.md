@@ -1,16 +1,17 @@
 # Momentum Investment
 
-A full-stack quantitative momentum research platform and authentication portal for the NSE Nifty 200 universe, featuring live NIFTY 500 market insights, technical indicators, cross-sectional screening, strategy simulation, and historical backtesting.
+A full-stack quantitative momentum stock-picking platform and authentication portal for the NSE Nifty 500 universe (`universe -> quality filters -> momentum score -> rank -> portfolio`), featuring live NIFTY 500 market insights, technical indicators, cross-sectional screening, strategy building, and historical backtesting.
 
 ## Features
 
+- **Today's Picks (`/picks`, default after login)**: Selected Nifty 500 momentum portfolio with funnel stage counts, cards/table view, sparklines, market cap, why-picked explanations, buy/sell/hold changes since last month, and per-stock filter exclusion diagnostics.
+- **Strategy Builder (`/strategy`)**: Interactive sliders and toggles for quality/liquidity filters, momentum scoring (`vol_adjusted`, `raw`, `zscore_blend`), and portfolio size with live KaTeX formulas and selection funnel preview.
 - **Market Overview (`/dashboard`)**: Live breadth chart (% above 50/200DMA), KPI cards, Top 10 & Bottom 10 momentum lists with 30-day sparklines, and an interactive sector momentum heatmap.
-- **Momentum Screener (`/screener`)**: Full 200-stock sortable & paginated table with search, sector & trend-regime filters, minimum-score slider, toggleable columns, CSV export, and `localStorage` watchlist stars.
+- **Momentum Screener (`/screener`)**: Full Nifty 500 sortable & paginated table with search, sector & trend-regime filters, minimum-score slider, market cap column, toggleable columns, CSV export, and `localStorage` watchlist stars.
 - **Stock Deep-Dive (`/stock/:symbol`)**: Interactive price chart with SMA 20/50/200 toggles and `1y`/`3y`/`5y` range selector, volume & RSI(14) charts, plain-English trend verdict, monthly rank history, and step-by-step KaTeX score breakdown.
-- **Stock Compare (`/compare`)**: Side-by-side normalized performance chart (`Base = 100`) and full indicator comparison for up to 4 stocks.
-- **Strategy Lab (`/strategy-lab`)**: Real-time `/api/signals` explorer with adjustable lookback, skip window, top-N, and scoring method plus KaTeX formula preview.
-- **Backtester (`/backtest`)**: Monthly-rebalanced historical simulation with `T+1` close execution lag, transaction cost modeling, benchmark comparison (`^CNX200`), drawdown & yearly return charts, and saved user runs.
-- **Methodology & Watchlist (`/learn`, `/watchlist`)**: Interactive KaTeX quantitative reference and persistent watchlist view.
+- **Stock Compare (`/compare`)**: Side-by-side normalized performance chart (`Base = 100`), relative strength vs Nifty, and highlighted best-in-row comparison table for up to 4 stocks.
+- **Backtester (`/backtest`)**: Monthly-rebalanced historical simulation with `T+1` close execution lag, transaction cost modeling, benchmark comparison (`^CNX200`), monthly heatmap, drawdown & yearly return tables, and saved user runs.
+- **Methodology & Watchlist (`/learn`, `/watchlist`)**: Interactive KaTeX quantitative reference ("Momentum 101") and persistent watchlist with 1-month rank change.
 
 ## Project Structure
 
@@ -18,11 +19,11 @@ A full-stack quantitative momentum research platform and authentication portal f
 ├── frontend/               # React + Vite + Tailwind CSS + Recharts + KaTeX
 │   ├── public/
 │   ├── src/
-│   │   ├── components/     # AppLayout, DataTable, StatCard, TrendBadge, Sparkline, SectorHeatmap, MathFormula
-│   │   ├── context/        # AuthContext (JWT session)
+│   │   ├── components/     # AppLayout, PipelineFunnel, DataTable, StatCard, TrendBadge, Sparkline, SectorHeatmap, MathFormula
+│   │   ├── context/        # AuthContext (JWT session), PipelineContext (shared strategy parameters)
 │   │   ├── hooks/          # useCachedApi (in-memory TTL cache), useWatchlist (localStorage)
 │   │   ├── lib/            # API client & INR/percent/CSV formatters
-│   │   └── pages/          # Dashboard, Screener, StockDetail, Compare, StrategyLab, Backtest, Learn, Watchlist
+│   │   └── pages/          # TodaysPicks, StrategyLab, Dashboard, Screener, StockDetail, Compare, Backtest, Learn, Watchlist, NotFound
 │   ├── .env.example
 │   ├── index.html
 │   └── package.json
@@ -87,6 +88,7 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
 - `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
 - `GET /api/signals?as_of=YYYY-MM-DD&method=vol_adjusted&top=20&lookback=252&skip=21` — Protected endpoint returning momentum scores, rankings, and top selections as of a given date
+- `GET/POST /api/pipeline/run` — Protected, cached endpoint executing the full Nifty 500 stock-picking pipeline (`universe -> filters -> score -> rank -> portfolio`) and returning stage counts, selected picks, buy/sell/hold diffs, and per-stock filter removal reasons
 - `GET /api/strategy/preview?lookback=252&skip=21&top=20&method=vol_adjusted` — Lightweight protected endpoint returning live Strategy Lab top-N portfolio, sector counts, and diff vs defaults
 - `GET /api/screener` — Protected, cached endpoint returning full-universe indicators, returns, scores, ranks, rank changes, and trend labels
 - `GET /api/stocks/<symbol>/analysis?range=1y|3y|5y` — Protected endpoint returning SMA/RSI/relative-strength series, monthly rank history, and step-by-step score breakdown
@@ -153,12 +155,31 @@ python -m scripts.ingest_benchmark
 python -m scripts.run_backtest
 ```
 
+#### Nifty 500 Pipeline & Defaults
+
+The stock-picking pipeline (`backend/pipeline.py`) executes four deterministic stages using only data `<= as_of`:
+
+1. **Universe**: Official Nifty 500 constituents (`backend/data/nifty500.csv`, `python -m scripts.load_universe` + `python -m scripts.ingest_prices --incremental` + weekly `python -m scripts.refresh_fundamentals`).
+2. **Quality & Liquidity Filters** (defaults):
+   - Minimum market cap: `₹5,000 Cr` (`unknown_mcap_policy = "exclude"`, toggleable to `"include"`)
+   - Minimum share price: `₹50`
+   - Minimum 20-day average traded value (`close × volume`): `₹5 Cr/day`
+   - Minimum prior history: `273` trading days (`lookback_days + skip_days`)
+   - Above 200-day SMA: `True` (`price > SMA_200`)
+   - Within 52-week high: `≤ 25%` below trailing 252-day peak
+   - Excluded sectors: `[]`
+3. **Momentum Scoring** (`method` options):
+   - `vol_adjusted` (default): `(P[t - skip] / P[t - lookback] - 1) / (std(daily_returns) * sqrt(252))`
+   - `raw`: `P[t - skip] / P[t - lookback] - 1`
+   - `zscore_blend`: `0.5 * z(R_6M) + 0.5 * z(R_12_1M)` standardized cross-sectionally across filtered survivors
+4. **Portfolio & Rebalance Diff**: Top `20` ranked stocks (`equal weight = 1 / N`), compared against the previous month-end's selection to generate **Buy**, **Sell**, and **Hold** lists.
+
 #### Limitations
 
-- **Survivorship bias**: Universe membership comes from today's `nifty200.csv` rather than historical point-in-time index constituents, which can overstate historical returns.
-- **Limited history**: The database covers roughly 6 years of daily bars (~5 years after the initial 12-month momentum warmup), spanning a limited set of market regimes.
+- **Survivorship bias**: Universe membership comes from today's `nifty500.csv` rather than historical point-in-time index constituents, which can overstate historical returns.
+- **Data source limits**: Market caps come from `yfinance` snapshots (which can be missing/unknown for certain REITs or corporate-action tickers) and daily prices cover ~6 years.
 - **No taxes or slippage beyond the cost model**: Capital gains taxes (STCG/LTCG), STT/exchange levies beyond `cost_bps`, market impact, and liquidity constraints are not modeled separately.
-- **Not investment advice**: Backtest outputs are historical simulations for research and educational purposes only and do not constitute investment advice or a guarantee of future performance.
+- **Not investment advice**: Pipeline picks and backtest outputs are historical simulations for educational and research purposes only and do not constitute investment advice.
 
 #### Backend Tests
 

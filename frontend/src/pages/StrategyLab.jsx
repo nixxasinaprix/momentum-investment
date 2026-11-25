@@ -1,408 +1,507 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, GitCompare, RotateCcw, SlidersHorizontal } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { ArrowRight, BarChart3, Filter, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
 import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
 import MathFormula from "../components/MathFormula";
-import { SkeletonTable } from "../components/Skeleton";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import { useCachedApi } from "../hooks/useCachedApi";
-import { formatPct, shortSymbol } from "../lib/format";
-
-const DEFAULTS = {
-  lookback: 252,
-  skip: 21,
-  top: 20,
-  method: "vol_adjusted",
-};
+import PipelineFunnel from "../components/PipelineFunnel";
+import { SkeletonCard } from "../components/Skeleton";
+import { ErrorState } from "../components/StateViews";
+import { useAuth } from "../context/AuthContext";
+import { usePipelineParams } from "../context/PipelineContext";
+import { DEFAULT_PIPELINE_PARAMS } from "../lib/pipelineDefaults";
+import { api } from "../lib/api";
+import { shortSymbol } from "../lib/format";
 
 export default function StrategyLab() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(DEFAULTS);
-  const [debounced, setDebounced] = useState(DEFAULTS);
+  const { token } = useAuth();
+  const { params, setParams, resetParams } = usePipelineParams();
+
+  const [draft, setDraft] = useState(params);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!token) return;
+    let active = true;
     const timer = setTimeout(() => {
-      setDebounced(form);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [form]);
+      setLoading(true);
+      api("/api/pipeline/run", {
+        method: "POST",
+        body: draft,
+        token,
+      })
+        .then((res) => {
+          if (active) {
+            setPreview(res);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          if (active) setError(err.message || "Preview failed");
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 300);
 
-  const queryStr = useMemo(() => {
-    const safeSkip = Math.min(debounced.skip, debounced.lookback - 1);
-    const p = new URLSearchParams({
-      method: debounced.method,
-      top: String(debounced.top),
-      lookback: String(debounced.lookback),
-      skip: String(safeSkip),
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [draft, token]);
+
+  const toggleSectorExclusion = (sector) => {
+    setDraft((prev) => {
+      const exists = prev.excluded_sectors.includes(sector);
+      return {
+        ...prev,
+        excluded_sectors: exists
+          ? prev.excluded_sectors.filter((s) => s !== sector)
+          : [...prev.excluded_sectors, sector],
+      };
     });
-    return `/api/strategy/preview?${p.toString()}`;
-  }, [debounced]);
-
-  const { data, loading, error, refetch } = useCachedApi(queryStr);
-
-  const diffsFromDefault = useMemo(() => {
-    const diffs = [];
-    if (form.lookback !== DEFAULTS.lookback) {
-      diffs.push(`Lookback ${DEFAULTS.lookback}d → ${form.lookback}d`);
-    }
-    if (form.skip !== DEFAULTS.skip) {
-      diffs.push(`Skip ${DEFAULTS.skip}d → ${form.skip}d`);
-    }
-    if (form.top !== DEFAULTS.top) {
-      diffs.push(`Holdings ${DEFAULTS.top} → ${form.top}`);
-    }
-    if (form.method !== DEFAULTS.method) {
-      diffs.push(
-        `Scoring ${DEFAULTS.method} → ${form.method}`
-      );
-    }
-    return diffs;
-  }, [form]);
-
-  const launchBacktest = () => {
-    const safeSkip = Math.min(form.skip, form.lookback - 1);
-    const p = new URLSearchParams({
-      top_n: String(form.top),
-      lookback: String(form.lookback),
-      skip: String(safeSkip),
-      method: form.method,
-      autorun: "1",
-    });
-    navigate(`/backtest?${p.toString()}`);
   };
 
-  const columns = [
-    {
-      key: "rank",
-      label: "Rank",
-      sortable: true,
-      defaultDir: "asc",
-      render: (r) => <span className="font-semibold text-stone-300">#{r.rank}</span>,
-    },
-    {
-      key: "symbol",
-      label: "Stock",
-      sortable: true,
-      defaultDir: "asc",
-      render: (r) => (
-        <div className="flex items-center gap-2">
-          <div>
-            <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
-            <div className="max-w-[200px] truncate text-xs text-stone-400">{r.name}</div>
-          </div>
-          {!r.in_default && (
-            <span className="rounded-md border border-emerald-500/35 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-              NEW
-            </span>
-          )}
-        </div>
-      ),
-    },
-    { key: "sector", label: "Sector", sortable: true, defaultDir: "asc" },
-    {
-      key: "momentum",
-      label: "Return",
-      sortable: true,
-      align: "right",
-      render: (r) => (
-        <span className={(r.momentum ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}>
-          {formatPct(r.momentum, 2)}
-        </span>
-      ),
-    },
-    {
-      key: "volatility",
-      label: "Vol (Ann)",
-      sortable: true,
-      align: "right",
-      render: (r) => (r.volatility != null ? `${(r.volatility * 100).toFixed(2)}%` : "—"),
-    },
-    {
-      key: "score",
-      label: "Score",
-      sortable: true,
-      align: "right",
-      render: (r) => (
-        <span className="font-bold text-[#F0867C]">
-          {r.score != null ? r.score.toFixed(3) : "—"}
-        </span>
-      ),
-    },
-    {
-      key: "weight",
-      label: "Weight",
-      sortable: true,
-      align: "right",
-      render: (r) => `${(r.weight * 100).toFixed(2)}%`,
-    },
-  ];
+  const handleRunAndOpenPicks = () => {
+    setParams(draft);
+    navigate("/picks");
+  };
 
-  const effectiveSkip = Math.min(form.skip, form.lookback - 1);
-  const formulaLatex =
-    form.method === "vol_adjusted"
-      ? `\\text{Score}_i = \\frac{\\frac{P_{t-${effectiveSkip}}}{P_{t-${form.lookback}}} - 1}{\\sigma_{\\text{ann}, ${form.lookback}}(i)}, \\qquad w_i = \\frac{1}{${form.top}} = ${(
-          100 / form.top
-        ).toFixed(2)}\\%`
-      : `\\text{Score}_i = \\frac{P_{t-${effectiveSkip}}}{P_{t-${form.lookback}}} - 1, \\qquad w_i = \\frac{1}{${form.top}} = ${(
-          100 / form.top
-        ).toFixed(2)}\\%`;
+  const handleReset = () => {
+    resetParams();
+    setDraft(DEFAULT_PIPELINE_PARAMS);
+  };
 
-  const comp = data?.comparison_to_default;
+  const effectiveSkip = Math.min(draft.skip_days, draft.lookback_days - 1);
+
+  const filterFormula = useMemo(() => {
+    const parts = [];
+    if (draft.min_market_cap_cr > 0) parts.push(`\\text{MCap} \\ge ${draft.min_market_cap_cr}\\text{Cr}`);
+    if (draft.min_price > 0) parts.push(`P_t \\ge \\text{₹}${draft.min_price}`);
+    if (draft.min_avg_traded_value_cr > 0) parts.push(`\\overline{P\\cdot V}_{20} \\ge ${draft.min_avg_traded_value_cr}\\text{Cr}`);
+    if (draft.above_200dma) parts.push(`P_t > \\text{SMA}_{200}`);
+    if (draft.max_pct_below_52w_high !== null && draft.max_pct_below_52w_high < 100) {
+      parts.push(`\\frac{P_t}{H_{52w}} \\ge ${(1 - draft.max_pct_below_52w_high / 100).toFixed(2)}`);
+    }
+    return parts.length ? parts.join(",\\; ") : "\\text{All active Nifty 500 stocks eligible}";
+  }, [draft]);
+
+  const scoreFormula = useMemo(() => {
+    if (draft.method === "vol_adjusted") {
+      return `\\text{Score}_i = \\frac{P_{t-${effectiveSkip}}/P_{t-${draft.lookback_days}} - 1}{\\sigma_{\\text{ann}, ${draft.lookback_days}}(i)}, \\quad w_i = \\frac{1}{${draft.top_n}}`;
+    }
+    if (draft.method === "zscore_blend") {
+      return `\\text{Score}_i = 0.5\\,z(R_{6\\text{M}}) + 0.5\\,z(R_{${draft.lookback_days}-${effectiveSkip}}), \\quad w_i = \\frac{1}{${draft.top_n}}`;
+    }
+    return `\\text{Score}_i = \\frac{P_{t-${effectiveSkip}}}{P_{t-${draft.lookback_days}}} - 1, \\quad w_i = \\frac{1}{${draft.top_n}}`;
+  }, [draft.method, draft.lookback_days, effectiveSkip, draft.top_n]);
+
+  const availableSectors = preview?.sectors_available || [];
 
   return (
     <AppLayout
-      title="Strategy Lab"
-      subtitle="Interactive live signal tuner with debounced updates across lookback, skip, and portfolio size"
+      title="Strategy Builder"
+      subtitle="Configure quality filters, momentum formula, and portfolio rules — then run Today's Picks"
       actions={
-        <div className="flex items-center gap-2">
-          {diffsFromDefault.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setForm(DEFAULTS)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </button>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={launchBacktest}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-3.5 py-1.5 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+            onClick={handleReset}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30"
           >
-            Run backtest with these settings
-            <ArrowRight className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5" />
+            Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setParams(draft);
+              navigate("/backtest?autorun=1");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:border-[#F0867C]/50"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Backtest
+          </button>
+          <button
+            type="button"
+            onClick={handleRunAndOpenPicks}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-1.5 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
+          >
+            <Play className="h-3.5 w-3.5" fill="currentColor" />
+            Run &amp; Open Today&apos;s Picks
           </button>
         </div>
       }
     >
       <div className="space-y-6">
-        {/* Sliders + live KaTeX formula */}
-        <section className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg lg:grid-cols-12">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-7">
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-stone-300">Lookback Horizon</span>
-                <span className="font-bold text-[#F0867C]">{form.lookback} trading days</span>
-              </div>
-              <input
-                type="range"
-                min={60}
-                max={504}
-                step={1}
-                value={form.lookback}
-                onChange={(e) => {
-                  const lb = Number(e.target.value);
-                  setForm((p) => ({ ...p, lookback: lb, skip: Math.min(p.skip, lb - 1) }));
-                }}
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-              />
-              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
-                <span>60d (~3M)</span>
-                <span>252d (1Y)</span>
-                <span>504d (2Y)</span>
-              </div>
-            </div>
+        {/* Funnel Visual */}
+        {loading && !preview ? (
+          <SkeletonCard count={4} />
+        ) : error ? (
+          <ErrorState title="Pipeline preview error" message={error} />
+        ) : (
+          <PipelineFunnel stages={preview?.stages || []} />
+        )}
 
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+        {/* Section 1: Quality Filters */}
+        <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+          <div className="mb-4 flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[#F0867C]" />
+            <h2 className="font-display text-base font-bold text-white">
+              1. Quality &amp; Liquidity Filters
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
               <div className="flex justify-between text-xs">
-                <span className="font-medium text-stone-300">Skip Recent Days</span>
-                <span className="font-bold text-[#F0867C]">{effectiveSkip} trading days</span>
+                <span className="font-semibold text-white">Min Market Cap</span>
+                <span className="font-bold text-[#F0867C]">
+                  {draft.min_market_cap_cr > 0
+                    ? `₹${draft.min_market_cap_cr.toLocaleString("en-IN")} Cr`
+                    : "Off"}
+                </span>
               </div>
               <input
                 type="range"
                 min={0}
-                max={Math.min(63, form.lookback - 1)}
-                step={1}
-                value={effectiveSkip}
-                onChange={(e) => setForm((p) => ({ ...p, skip: Number(e.target.value) }))}
+                max={50000}
+                step={500}
+                value={draft.min_market_cap_cr}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, min_market_cap_cr: Number(e.target.value) }))
+                }
                 className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
               />
-              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
-                <span>0d (no skip)</span>
-                <span>21d (1M)</span>
-                <span>63d (3M)</span>
-              </div>
+              <p className="mt-1.5 text-[11px] text-stone-400">
+                Removes smaller, higher-volatility companies below this market capitalization.
+              </p>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
               <div className="flex justify-between text-xs">
-                <span className="font-medium text-stone-300">Portfolio Top N</span>
-                <span className="font-bold text-[#F0867C]">{form.top} stocks</span>
+                <span className="font-semibold text-white">Min 20D Avg Traded Value</span>
+                <span className="font-bold text-[#F0867C]">
+                  {draft.min_avg_traded_value_cr > 0
+                    ? `₹${draft.min_avg_traded_value_cr} Cr/day`
+                    : "Off"}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={draft.min_avg_traded_value_cr}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, min_avg_traded_value_cr: Number(e.target.value) }))
+                }
+                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+              />
+              <p className="mt-1.5 text-[11px] text-stone-400">
+                Ensures sufficient daily liquidity (close × volume) so entries/exits have lower slippage.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
+              <div className="flex justify-between text-xs">
+                <span className="font-semibold text-white">Minimum Share Price</span>
+                <span className="font-bold text-[#F0867C]">
+                  {draft.min_price > 0 ? `₹${draft.min_price}` : "Off"}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={500}
+                step={10}
+                value={draft.min_price}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, min_price: Number(e.target.value) }))
+                }
+                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+              />
+              <p className="mt-1.5 text-[11px] text-stone-400">
+                Avoids low-priced stocks where tick sizes create disproportionate percentage swings.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-white">Within % of 52-Week High</span>
+                <span className="font-bold text-[#F0867C]">
+                  {draft.max_pct_below_52w_high !== null && draft.max_pct_below_52w_high < 100
+                    ? `≤ ${draft.max_pct_below_52w_high}%`
+                    : "Disabled"}
+                </span>
               </div>
               <input
                 type="range"
                 min={5}
-                max={50}
-                step={1}
-                value={form.top}
-                onChange={(e) => setForm((p) => ({ ...p, top: Number(e.target.value) }))}
+                max={100}
+                step={5}
+                value={draft.max_pct_below_52w_high ?? 100}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setDraft((p) => ({
+                    ...p,
+                    max_pct_below_52w_high: val >= 100 ? null : val,
+                  }));
+                }}
                 className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
               />
-              <div className="mt-1 flex justify-between text-[10px] text-stone-500">
-                <span>5 (Concentrated)</span>
-                <span>20 (Default)</span>
-                <span>50 (Broad)</span>
-              </div>
+              <p className="mt-1.5 text-[11px] text-stone-400">
+                Keeps only leaders trading near their 52-week peak (100% disables this rule).
+              </p>
             </div>
 
-            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-3.5">
-              <span className="text-xs font-medium text-stone-300">Scoring Method</span>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {[
-                  { id: "vol_adjusted", label: "Vol-Adjusted" },
-                  { id: "raw", label: "Raw Momentum" },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setForm((p) => ({ ...p, method: opt.id }))}
-                    className={`rounded-lg border py-2 text-xs font-semibold transition ${
-                      form.method === opt.id
-                        ? "border-[#F0867C]/50 bg-[#8C4570]/45 text-white"
-                        : "border-white/10 bg-white/[0.03] text-stone-400 hover:text-white"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white">Price Above 200-Day SMA</span>
+                <button
+                  type="button"
+                  onClick={() => setDraft((p) => ({ ...p, above_200dma: !p.above_200dma }))}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                    draft.above_200dma
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : "bg-white/5 text-stone-400 border border-white/10"
+                  }`}
+                >
+                  {draft.above_200dma ? "Enabled" : "Off"}
+                </button>
               </div>
+              <p className="mt-2 text-[11px] text-stone-400">
+                Requires long-term trend confirmation so rebounding bear-market stocks are excluded.
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-white">Unknown Market Cap</span>
+                <div className="flex rounded-lg border border-white/10 bg-[#12131F] p-0.5 text-[11px]">
+                  {["exclude", "include"].map((pol) => (
+                    <button
+                      key={pol}
+                      type="button"
+                      onClick={() => setDraft((p) => ({ ...p, unknown_mcap_policy: pol }))}
+                      className={`rounded-md px-2.5 py-1 font-semibold capitalize ${
+                        draft.unknown_mcap_policy === pol
+                          ? "bg-[#8C4570] text-white"
+                          : "text-stone-400"
+                      }`}
+                    >
+                      {pol}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-stone-400">
+                Controls whether stocks missing a cached yfinance market cap are excluded or kept.
+              </p>
             </div>
           </div>
 
-          {/* Live KaTeX formula + What changed vs defaults */}
-          <div className="flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-[#07080F] p-4 lg:col-span-5">
-            <div>
-              <div className="flex items-center justify-between text-xs text-stone-400">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-[#F0867C]">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  Live Signal Formula
+          {availableSectors.length > 0 && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-[#07080F] p-4">
+              <div className="mb-2 flex items-center justify-between text-xs">
+                <span className="font-semibold text-white">
+                  Sector Exclusions ({draft.excluded_sectors.length} excluded)
                 </span>
-                {data?.as_of && <span>As of {data.as_of}</span>}
-              </div>
-              <div className="mt-2">
-                <MathFormula display math={formulaLatex} />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs">
-              <div className="flex items-center gap-1.5 font-semibold text-white">
-                <GitCompare className="h-3.5 w-3.5 text-amber-300" />
-                What Changed vs Defaults (252 / 21 / Top 20 / Vol-Adj)
-              </div>
-              {diffsFromDefault.length === 0 ? (
-                <p className="mt-1 text-stone-400">
-                  Using canonical baseline parameters ({data?.universe_size || "—"} eligible stocks).
-                </p>
-              ) : (
-                <div className="mt-1.5 space-y-1 text-stone-300">
-                  <p>{diffsFromDefault.join(" · ")}</p>
-                  {comp && (
-                    <p className="text-stone-400">
-                      Overlap with default Top 20:{" "}
-                      <strong className="text-white">{comp.overlap_count}</strong> stocks
-                      {comp.added.length > 0 && (
-                        <>
-                          {" "}· Added:{" "}
-                          <span className="text-emerald-300">
-                            {comp.added.slice(0, 5).map(shortSymbol).join(", ")}
-                            {comp.added.length > 5 ? ` +${comp.added.length - 5}` : ""}
-                          </span>
-                        </>
-                      )}
-                      {comp.removed.length > 0 && (
-                        <>
-                          {" "}· Dropped:{" "}
-                          <span className="text-rose-300">
-                            {comp.removed.slice(0, 5).map(shortSymbol).join(", ")}
-                            {comp.removed.length > 5 ? ` +${comp.removed.length - 5}` : ""}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {loading && !data ? (
-          <SkeletonTable rows={10} cols={7} />
-        ) : error ? (
-          <ErrorState title="Could not preview strategy" message={error} onRetry={refetch} />
-        ) : !data?.portfolio?.length ? (
-          <EmptyState
-            title="No eligible stocks"
-            description="Try shortening the lookback window so more stocks meet the minimum history rule."
-          />
-        ) : (
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="font-display text-base font-bold text-white">
-                    Sector Allocation ({data.portfolio.length} Selected Holdings)
-                  </h2>
-                  <p className="text-xs text-stone-400">
-                    Equal weight {(100 / data.portfolio.length).toFixed(2)}% per position · Universe: {data.universe_size} eligible stocks
-                  </p>
-                </div>
-                {loading && (
-                  <span className="text-xs font-medium text-[#F0867C]">Updating preview...</span>
+                {draft.excluded_sectors.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setDraft((p) => ({ ...p, excluded_sectors: [] }))}
+                    className="text-[#F0867C] hover:underline"
+                  >
+                    Clear exclusions
+                  </button>
                 )}
               </div>
-
-              <div className="h-[220px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={data.sectors}
-                    margin={{ top: 4, right: 12, left: -12, bottom: 24 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                    <XAxis
-                      dataKey="sector"
-                      tick={{ fill: "#a8a29e", fontSize: 10 }}
-                      interval={0}
-                      angle={-18}
-                      textAnchor="end"
-                      height={54}
-                    />
-                    <YAxis allowDecimals={false} tick={{ fill: "#a8a29e", fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#141220",
-                        borderColor: "rgba(255,255,255,0.12)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Bar dataKey="count" name="Holdings" fill="#F0867C" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="flex flex-wrap gap-1.5">
+                {availableSectors.map((sec) => {
+                  const excluded = draft.excluded_sectors.includes(sec);
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => toggleSectorExclusion(sec)}
+                      className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
+                        excluded
+                          ? "border-rose-500/40 bg-rose-500/15 text-rose-300 line-through"
+                          : "border-white/10 bg-white/[0.03] text-stone-300 hover:border-white/25"
+                      }`}
+                    >
+                      {sec}
+                    </button>
+                  );
+                })}
               </div>
-            </section>
+            </div>
+          )}
+        </section>
 
-            <DataTable
-              columns={columns}
-              rows={data.portfolio}
-              defaultSortKey="rank"
-              defaultSortDir="asc"
-              pageSize={25}
-              onRowClick={(r) => navigate(`/stock/${encodeURIComponent(r.symbol)}`)}
-            />
-          </div>
-        )}
+        {/* Section 2 & 3: Momentum + Portfolio + KaTeX Live Math */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <section className="space-y-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg xl:col-span-7">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-[#F0867C]" />
+              <h2 className="font-display text-base font-bold text-white">
+                2. Momentum &amp; Portfolio Settings
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4 sm:col-span-2">
+                <span className="text-xs font-semibold text-white">Scoring Method</span>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    { id: "vol_adjusted", label: "Vol-Adjusted (12-1M / σ)" },
+                    { id: "raw", label: "Raw 12-1M Return" },
+                    { id: "zscore_blend", label: "6M + 12M Z-Score Blend" },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setDraft((p) => ({ ...p, method: m.id }))}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        draft.method === m.id
+                          ? "border-[#F0867C]/50 bg-[#8C4570]/45 text-white"
+                          : "border-white/10 bg-white/[0.03] text-stone-400 hover:text-white"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-stone-400">
+                  Vol-adjusted favors steady compounders; Z-score blend combines 6-month and 12-month cross-sectional ranks.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-white">Lookback Horizon</span>
+                  <span className="font-bold text-[#F0867C]">{draft.lookback_days}d</span>
+                </div>
+                <input
+                  type="range"
+                  min={60}
+                  max={504}
+                  value={draft.lookback_days}
+                  onChange={(e) => {
+                    const lb = Number(e.target.value);
+                    setDraft((p) => ({
+                      ...p,
+                      lookback_days: lb,
+                      skip_days: Math.min(p.skip_days, lb - 1),
+                      min_history_days: Math.max(p.min_history_days, lb + Math.min(p.skip_days, lb - 1)),
+                    }));
+                  }}
+                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+                />
+                <p className="mt-1.5 text-[11px] text-stone-400">
+                  Trading days in the return lookback (252 ≈ 12 months).
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-white">Skip Recent Days</span>
+                  <span className="font-bold text-[#F0867C]">{effectiveSkip}d</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.min(63, draft.lookback_days - 1)}
+                  value={effectiveSkip}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, skip_days: Number(e.target.value) }))
+                  }
+                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+                />
+                <p className="mt-1.5 text-[11px] text-stone-400">
+                  Skips the latest month (21d) to avoid short-term reversal noise.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4 sm:col-span-2">
+                <div className="flex justify-between text-xs">
+                  <span className="font-semibold text-white">Portfolio Holdings (Top N)</span>
+                  <span className="font-bold text-[#F0867C]">
+                    {draft.top_n} stocks ({(100 / draft.top_n).toFixed(2)}% each)
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={5}
+                  max={50}
+                  value={draft.top_n}
+                  onChange={(e) => setDraft((p) => ({ ...p, top_n: Number(e.target.value) }))}
+                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
+                />
+                <p className="mt-1.5 text-[11px] text-stone-400">
+                  Fewer stocks concentrate conviction; more stocks diversify idiosyncratic single-name risk.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Live KaTeX & Preview Top 5 */}
+          <section className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg xl:col-span-5">
+            <div className="space-y-3">
+              <h2 className="font-display text-base font-bold text-white">
+                Live Pipeline Equations
+              </h2>
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3">
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                  Eligibility Gate
+                </div>
+                <MathFormula display math={filterFormula} />
+              </div>
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3">
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                  Ranking Score &amp; Weight
+                </div>
+                <MathFormula display math={scoreFormula} />
+              </div>
+            </div>
+
+            {preview?.selected?.length > 0 && (
+              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-white">
+                    Live Top 5 Preview ({preview.as_of})
+                  </span>
+                  {loading && <span className="text-[#F0867C]">Updating…</span>}
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  {preview.selected.slice(0, 5).map((s) => (
+                    <div key={s.symbol} className="flex items-center justify-between">
+                      <span className="text-stone-200">
+                        <strong className="text-[#F0867C]">#{s.rank}</strong> {shortSymbol(s.symbol)}
+                      </span>
+                      <span className="tabular-nums text-stone-400">
+                        Score {s.score != null ? s.score.toFixed(2) : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRunAndOpenPicks}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-110"
+            >
+              Run Pipeline &amp; View Today&apos;s Picks
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </section>
+        </div>
       </div>
     </AppLayout>
   );

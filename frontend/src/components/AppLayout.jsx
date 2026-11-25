@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   SlidersHorizontal,
+  Sparkles,
   Star,
   X,
   Zap,
@@ -20,10 +21,11 @@ import { clearApiCache } from "../hooks/useCachedApi";
 import { useWatchlist } from "../hooks/useWatchlist";
 
 const NAV_ITEMS = [
+  { to: "/picks", label: "Today's Picks", icon: Sparkles },
+  { to: "/strategy", label: "Strategy Builder", icon: SlidersHorizontal },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/screener", label: "Screener", icon: Filter },
   { to: "/compare", label: "Compare", icon: GitCompare },
-  { to: "/strategy", label: "Strategy Lab", icon: SlidersHorizontal },
   { to: "/backtest", label: "Backtest", icon: BarChart3 },
   { to: "/learn", label: "Learn", icon: BookOpen },
   { to: "/watchlist", label: "Watchlist", icon: Star },
@@ -93,7 +95,7 @@ export default function AppLayout({ title, subtitle, actions, children }) {
                 Momentum Lab
               </div>
               <div className="text-[10px] font-medium uppercase tracking-widest text-[#F0867C]">
-                Nifty 200 Research
+                Nifty 500 Pipeline
               </div>
             </div>
           </Link>
@@ -108,7 +110,7 @@ export default function AppLayout({ title, subtitle, actions, children }) {
               <span>Benchmark: NIFTY 200</span>
             </div>
             <p className="mt-1 text-[11px] text-stone-500">
-              12-1M volatility-adjusted quantitative research suite.
+              Educational momentum research tool. Not investment advice.
             </p>
           </div>
         </div>

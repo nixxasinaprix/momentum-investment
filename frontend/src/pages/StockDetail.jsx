@@ -22,6 +22,7 @@ import { EmptyState, ErrorState } from "../components/StateViews";
 import StatCard from "../components/StatCard";
 import TrendBadge from "../components/TrendBadge";
 import { useCachedApi } from "../hooks/useCachedApi";
+import { usePipelineParams } from "../context/PipelineContext";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { formatCompactVolume, formatINR, formatPct, shortSymbol } from "../lib/format";
 
@@ -30,6 +31,7 @@ const RANGES = ["1y", "3y", "5y"];
 export default function StockDetail() {
   const { symbol } = useParams();
   const decodedSymbol = decodeURIComponent(symbol || "");
+  const { params: pipelineParams } = usePipelineParams();
   const [range, setRange] = useState("1y");
   const [showSma20, setShowSma20] = useState(false);
   const [showSma50, setShowSma50] = useState(true);
@@ -37,7 +39,7 @@ export default function StockDetail() {
 
   const { isWatched, toggleWatchlist } = useWatchlist();
   const { data, loading, error, refetch } = useCachedApi(
-    `/api/stocks/${encodeURIComponent(decodedSymbol)}/analysis?range=${range}`,
+    `/api/stocks/${encodeURIComponent(decodedSymbol)}/analysis?range=${range}&lookback=${pipelineParams.lookback_days}&skip=${Math.min(pipelineParams.skip_days, pipelineParams.lookback_days - 1)}`,
     { enabled: Boolean(decodedSymbol) }
   );
 
@@ -468,11 +470,11 @@ export default function StockDetail() {
                 <div className="space-y-4 text-sm">
                   <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
                     <div className="text-xs font-semibold uppercase tracking-wider text-stone-400">
-                      Step 1 · 12-1 Month Momentum Return
+                      Step 1 · Momentum Return ({breakdown.lookback_days}d − {breakdown.skip_days}d)
                     </div>
                     <MathFormula
                       display
-                      math={`R_{12-1} = \\frac{P_{t-21}}{P_{t-252}} - 1 = \\frac{${breakdown.price_21_ago.toFixed(
+                      math={`R = \\frac{P_{t-${breakdown.skip_days}}}{P_{t-${breakdown.lookback_days}}} - 1 = \\frac{${breakdown.price_21_ago.toFixed(
                         2
                       )}}{${breakdown.price_252_ago.toFixed(
                         2
@@ -480,11 +482,11 @@ export default function StockDetail() {
                     />
                     <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-stone-400">
                       <span>
-                        <strong className="text-stone-200">t−252</strong> ({breakdown.date_252_ago}):{" "}
+                        <strong className="text-stone-200">t−{breakdown.lookback_days}</strong> ({breakdown.date_252_ago}):{" "}
                         {formatINR(breakdown.price_252_ago)}
                       </span>
                       <span>
-                        <strong className="text-stone-200">t−21</strong> ({breakdown.date_21_ago}):{" "}
+                        <strong className="text-stone-200">t−{breakdown.skip_days}</strong> ({breakdown.date_21_ago}):{" "}
                         {formatINR(breakdown.price_21_ago)}
                       </span>
                     </div>

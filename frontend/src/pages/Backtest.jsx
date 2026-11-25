@@ -19,6 +19,7 @@ import { SkeletonCard, SkeletonChart } from "../components/Skeleton";
 import { EmptyState, ErrorState } from "../components/StateViews";
 import StatCard from "../components/StatCard";
 import { useAuth } from "../context/AuthContext";
+import { usePipelineParams } from "../context/PipelineContext";
 import { api } from "../lib/api";
 import { formatINR, formatPct, shortSymbol } from "../lib/format";
 
@@ -37,19 +38,22 @@ function heatCellClass(ret) {
 
 export default function Backtest() {
   const { token } = useAuth();
+  const { params: pipelineParams } = usePipelineParams();
   const [searchParams] = useSearchParams();
 
   const initialForm = useMemo(
     () => ({
-      top_n: Number(searchParams.get("top_n")) || 20,
-      lookback_days: Number(searchParams.get("lookback")) || 252,
-      skip_days: Number(searchParams.get("skip")) || 21,
-      method: searchParams.get("method") || "vol_adjusted",
+      top_n: Number(searchParams.get("top_n")) || pipelineParams.top_n || 20,
+      lookback_days: Number(searchParams.get("lookback")) || pipelineParams.lookback_days || 252,
+      skip_days: Number(searchParams.get("skip")) || pipelineParams.skip_days || 21,
+      method:
+        searchParams.get("method") ||
+        (pipelineParams.method === "raw" ? "raw" : "vol_adjusted"),
       cost_bps: 20,
       start: "",
       end: "",
     }),
-    [searchParams]
+    [searchParams, pipelineParams]
   );
 
   const [form, setForm] = useState(initialForm);

@@ -109,7 +109,7 @@ export default function LoginPage() {
       }
       setStatus("success");
       setTimeout(() => {
-        navigate("/dashboard", { replace: true });
+        navigate("/picks", { replace: true });
       }, 500);
     } catch (err) {
       setError(err.message || "Authentication failed");
