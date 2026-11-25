@@ -15,12 +15,14 @@ A full-stack investment platform landing page and authentication portal featurin
 │   └── package.json
 ├── backend/                # Flask API & NSE market data worker
 │   ├── auth.py             # JWT authentication blueprint & login_required
+│   ├── backtest.py         # Pure pandas/numpy monthly backtesting engine
+│   ├── backtest_routes.py  # Protected /api/backtest and /api/backtests endpoints
 │   ├── data/               # Nifty 200 universe CSV (nifty200.csv)
-│   ├── data_access.py      # Database-to-DataFrame price matrix loader
+│   ├── data_access.py      # Database-to-DataFrame price & benchmark loaders
 │   ├── market_data.py      # Yahoo Finance fetcher & Redis/in-memory cache
 │   ├── market_routes.py    # Protected /api/stocks and /api/prices endpoints
-│   ├── models.py           # SQLAlchemy User, Stock, and Price models
-│   ├── scripts/            # Universe loader, price ingestion, and signal CLI
+│   ├── models.py           # SQLAlchemy User, Stock, Price, BenchmarkPrice, BacktestRun
+│   ├── scripts/            # Universe, price, benchmark, signal, and backtest CLIs
 │   ├── server.py           # Flask server and background refresh daemon
 │   ├── signals.py          # Pure pandas/numpy momentum signal engine
 │   ├── signals_routes.py   # Protected /api/signals endpoint
@@ -70,6 +72,9 @@ The API server runs on `http://localhost:8000` by default and exposes:
 - `GET /api/stocks` — Protected endpoint returning active stocks (`symbol`, `name`, `sector`)
 - `GET /api/prices/<symbol>?from=YYYY-MM-DD&to=YYYY-MM-DD` — Protected endpoint returning daily adjusted OHLCV bars (defaults to the last 1 year)
 - `GET /api/signals?as_of=YYYY-MM-DD&method=vol_adjusted&top=20&lookback=252&skip=21` — Protected endpoint returning momentum scores, rankings, and top selections as of a given date
+- `POST /api/backtest` — Protected endpoint validating parameters, running a monthly momentum backtest, saving a `BacktestRun`, and returning metrics, yearly returns, equity curve, and rebalances
+- `GET /api/backtests` — Protected endpoint listing the logged-in user's saved backtest runs (headline metrics)
+- `GET /api/backtests/<id>` — Protected endpoint returning the full saved backtest result (`404` if not found or owned by another user)
 
 #### Historical Market Data Ingestion
 
@@ -110,6 +115,31 @@ cd backend
 python -m scripts.show_top --method vol_adjusted
 python -m scripts.show_top --method raw
 ```
+
+#### Backtest Methodology
+
+The historical simulator (`backend/backtest.py`) evaluates the signal engine with strict point-in-time discipline:
+
+- **Rebalance rule**: Rebalance signals are generated at the close of the **last trading day of each calendar month** by calling `signals.compute_scores(..., as_of=rebalance_date)` on price rows `<= rebalance_date`. Rebalancing begins only at the first month-end with sufficient history (`lookback_days + skip_days` prior trading days).
+- **Execution lag**: Trades execute at the **close of the next trading day** (`rebalance_date + 1`), never on the signal date itself. Between rebalances, share counts remain fixed and weights drift with prices.
+- **Transaction costs**: A configurable proportional cost (`cost_bps`, default `20` bps = `0.20%` per unit of traded value) is applied to both buys and sells (`sum(|target_value - current_value|) * cost_bps / 10000`) and deducted from portfolio value at each rebalance.
+- **Benchmark used**: **NIFTY 200 (`^CNX200`)**, ingested via `python -m scripts.ingest_benchmark` into `benchmark_prices` and rebased to the strategy's initial capital (`1,000,000` by default). If `^CNX200` is unavailable in the database, `/api/backtest` falls back to **NIFTY 50 (`^NSEI`)** and flags the fallback in the response.
+- **Risk-free assumption**: Sharpe and Sortino ratios assume an annual risk-free rate of **6.5%** (`0.065`, configurable via `risk_free_rate`), converted to a daily hurdle (`risk_free_rate / 252`).
+
+Run a backtest from `backend/`:
+
+```bash
+cd backend
+python -m scripts.ingest_benchmark
+python -m scripts.run_backtest
+```
+
+#### Limitations
+
+- **Survivorship bias**: Universe membership comes from today's `nifty200.csv` rather than historical point-in-time index constituents, which can overstate historical returns.
+- **Limited history**: The database covers roughly 6 years of daily bars (~5 years after the initial 12-month momentum warmup), spanning a limited set of market regimes.
+- **No taxes or slippage beyond the cost model**: Capital gains taxes (STCG/LTCG), STT/exchange levies beyond `cost_bps`, market impact, and liquidity constraints are not modeled separately.
+- **Not investment advice**: Backtest outputs are historical simulations for research and educational purposes only and do not constitute investment advice or a guarantee of future performance.
 
 #### Backend Tests
 

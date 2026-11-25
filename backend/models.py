@@ -100,3 +100,66 @@ class Price(db.Model):
             "close": self.close,
             "volume": self.volume,
         }
+
+
+class BenchmarkPrice(db.Model):
+    """Daily adjusted close price for a market benchmark index."""
+
+    __tablename__ = "benchmark_prices"
+    __table_args__ = (
+        db.UniqueConstraint("symbol", "date", name="uq_benchmark_symbol_date"),
+        db.Index("ix_benchmark_symbol_date", "symbol", "date"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(32), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    close = db.Column(db.Float, nullable=False)
+
+    def to_dict(self) -> dict:
+        """Return serialized benchmark bar."""
+        return {
+            "symbol": self.symbol,
+            "date": self.date.isoformat(),
+            "close": self.close,
+        }
+
+
+class BacktestRun(db.Model):
+    """Persisted backtest simulation run belonging to a user."""
+
+    __tablename__ = "backtest_runs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    params = db.Column(db.JSON, nullable=False)
+    metrics = db.Column(db.JSON, nullable=False)
+    result = db.Column(db.JSON, nullable=False)
+
+    user = db.relationship("User", backref=db.backref("backtest_runs", lazy="dynamic"))
+
+    def to_summary_dict(self) -> dict:
+        """Return lightweight run metadata and headline metrics."""
+        return {
+            "id": self.id,
+            "created_at": self.created_at.isoformat(),
+            "params": self.params,
+            "metrics": self.metrics,
+        }
+
+    def to_full_dict(self) -> dict:
+        """Return full run details including equity curve and rebalances."""
+        return {
+            "id": self.id,
+            "created_at": self.created_at.isoformat(),
+            "params": self.params,
+            "metrics": self.metrics,
+            **(self.result or {}),
+        }
