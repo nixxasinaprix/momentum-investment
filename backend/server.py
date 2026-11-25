@@ -3,7 +3,7 @@ import time
 import threading
 from flask import Flask, jsonify
 from flask_cors import CORS
-import ysbnak
+import market_data
 
 app = Flask(__name__)
 CORS(app)
@@ -46,8 +46,8 @@ DEFAULT_DETAILS = {
 }
 
 # Pre-seed cache so all endpoints respond instantaneously from the first call
-ysbnak.save_to_cache("nifty500_index", DEFAULT_INDEX, ttl=3600)
-ysbnak.save_to_cache("nifty500_details", DEFAULT_DETAILS, ttl=3600)
+market_data.save_to_cache("nifty500_index", DEFAULT_INDEX, ttl=3600)
+market_data.save_to_cache("nifty500_details", DEFAULT_DETAILS, ttl=3600)
 
 
 # ═══════════════════════════════════════════════════════
@@ -57,12 +57,12 @@ def background_market_worker():
     """Fetches live quotes in the background so HTTP requests never wait or timeout."""
     while True:
         try:
-            index = ysbnak.get_index_data()
+            index = market_data.get_index_data()
             if index:
                 index["_source"] = "live_market"
-                ysbnak.save_to_cache("nifty500_index", index, ttl=180)
+                market_data.save_to_cache("nifty500_index", index, ttl=180)
 
-            stocks = ysbnak.get_stock_data()
+            stocks = market_data.get_stock_data()
             if stocks and index:
                 sorted_stocks = sorted(stocks, key=lambda x: x["pChange"], reverse=True)
                 details = {
@@ -71,7 +71,7 @@ def background_market_worker():
                     "topLosers": sorted(sorted_stocks, key=lambda x: x["pChange"])[:5],
                     "_source": "live_market"
                 }
-                ysbnak.save_to_cache("nifty500_details", details, ttl=180)
+                market_data.save_to_cache("nifty500_details", details, ttl=180)
                 print("✅ Background worker: Live market data updated successfully.")
         except Exception as e:
             print(f"ℹ️ Background worker note: {e}")
@@ -84,7 +84,7 @@ def background_market_worker():
 # ═══════════════════════════════════════════════════════
 @app.route("/")
 def home():
-    cache_mode = "Redis ✅" if ysbnak.REDIS_AVAILABLE else "In-Memory Fallback ⚡ (Redis server offline)"
+    cache_mode = "Redis ✅" if market_data.REDIS_AVAILABLE else "In-Memory Fallback ⚡ (Redis server offline)"
     return (
         f"<h1>Momentum Investment API</h1>"
         f"<p>Cache: {cache_mode}</p>"
@@ -100,17 +100,17 @@ def home():
 def cache_status():
     """Lets you verify whether Redis or In-Memory caching is active."""
     return jsonify({
-        "redisConnected": ysbnak.REDIS_AVAILABLE,
-        "cacheMode": "redis" if ysbnak.REDIS_AVAILABLE else "in-memory",
-        "cacheTTL": ysbnak.CACHE_TTL,
-        "message": "Connected to Redis server" if ysbnak.REDIS_AVAILABLE
+        "redisConnected": market_data.REDIS_AVAILABLE,
+        "cacheMode": "redis" if market_data.REDIS_AVAILABLE else "in-memory",
+        "cacheTTL": market_data.CACHE_TTL,
+        "message": "Connected to Redis server" if market_data.REDIS_AVAILABLE
                    else "Using in-memory cache fallback (start Redis on port 6379 to use Redis)"
     })
 
 
 @app.route("/api/nifty500")
 def get_nifty_500():
-    cached = ysbnak.get_from_cache("nifty500_index")
+    cached = market_data.get_from_cache("nifty500_index")
     if cached:
         return jsonify(cached)
     return jsonify(DEFAULT_INDEX)
@@ -118,7 +118,7 @@ def get_nifty_500():
 
 @app.route("/api/nifty500-details")
 def nifty500_details():
-    cached = ysbnak.get_from_cache("nifty500_details")
+    cached = market_data.get_from_cache("nifty500_details")
     if cached:
         return jsonify(cached)
     return jsonify(DEFAULT_DETAILS)

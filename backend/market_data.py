@@ -1,5 +1,5 @@
 """
-ysbnak.py - Live NSE Market Data Fetcher & Redis/Memory Cache Library
+market_data.py - Live NSE Market Data Fetcher & Redis/Memory Cache Library
 Supports live index tracking (NIFTY 500, NIFTY 50) and active NSE stocks
 with Redis caching and automatic in-memory fallback.
 """
@@ -170,7 +170,7 @@ def get_stock_data():
 
 
 if __name__ == "__main__":
-    print("Testing ysbnak library...")
+    print("Testing market_data library...")
     idx = get_index_data()
     print("Index data:", idx)
     save_to_cache("test_index", idx)

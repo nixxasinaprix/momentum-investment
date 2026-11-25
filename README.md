@@ -1,16 +1,68 @@
-# React + Vite
+# Momentum Investment
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack investment platform landing page and authentication portal featuring live NSE (NIFTY 500) market insights, top gainers/losers, and Redis-backed caching with an automatic in-memory fallback.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```text
+├── frontend/               # React + Vite + Tailwind CSS client
+│   ├── public/
+│   ├── src/
+│   │   ├── components/     # Animated shader/scenery backgrounds
+│   │   └── pages/          # LandingPage and LoginPage
+│   ├── .env.example
+│   ├── index.html
+│   └── package.json
+├── backend/                # Flask API & NSE market data worker
+│   ├── market_data.py      # Yahoo Finance fetcher & Redis/in-memory cache
+│   ├── server.py           # Flask server and background refresh daemon
+│   └── requirements.txt
+└── .gitignore
+```
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Node.js** (v18+ recommended) and **npm**
+- **Python** 3.10+
+- **Redis** (optional — the backend automatically falls back to an in-memory cache if Redis is unavailable)
 
-## Expanding the ESLint configuration
+## Setup & Running Locally
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Backend
+
+```bash
+cd backend
+python -m venv venv
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# macOS/Linux:
+# source venv/bin/activate
+
+pip install -r requirements.txt
+python server.py
+```
+
+The API server runs on `http://localhost:8000` by default and exposes:
+- `GET /` — API status and links
+- `GET /api/nifty500` — NIFTY 500 index summary
+- `GET /api/nifty500-details` — Index summary plus NSE top 5 gainers and losers
+- `GET /api/cache-status` — Active cache mode (`redis` or `in-memory`) and TTL
+
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Set `VITE_API_URL` in `frontend/.env` if your backend runs on a non-default URL (defaults to `http://localhost:8000`).
+
+### Build & Lint
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```

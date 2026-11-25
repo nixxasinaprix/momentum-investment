@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import SceneryBackground from "../components/SceneryBackground";
 
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
 const DEFAULT_MARKET_DATA = {
   index: {
     name: "NIFTY 500",
@@ -82,7 +84,7 @@ export default function LandingPage() {
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     try {
-      const response = await fetch("http://localhost:8000/api/nifty500-details", {
+      const response = await fetch(`${API_URL}/api/nifty500-details`, {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -110,7 +112,7 @@ export default function LandingPage() {
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       try {
-        const response = await fetch("http://localhost:8000/api/nifty500-details", {
+        const response = await fetch(`${API_URL}/api/nifty500-details`, {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
