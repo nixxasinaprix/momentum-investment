@@ -1,41 +1,47 @@
+import { useTheme } from "../context/ThemeContext";
 import { formatPct, shortSymbol } from "../lib/format";
 
-function getTileColor(score, maxAbsScore) {
+function getTileStyle(score, maxAbsScore, dark) {
   if (score === null || score === undefined) {
-    return "border-white/10 bg-white/[0.03] text-stone-300";
+    return {
+      className:
+        "border-stone-200 bg-stone-100/75 text-stone-700 dark:border-stone-800 dark:bg-stone-800/40 dark:text-stone-300",
+      badgeCls: "text-stone-700 dark:text-stone-200",
+    };
   }
   const intensity = Math.min(1, Math.abs(score) / Math.max(0.5, maxAbsScore));
   if (score >= 0.4) {
-    const opacity = (0.14 + intensity * 0.24).toFixed(2);
+    const opacity = (dark ? 0.14 + intensity * 0.22 : 0.08 + intensity * 0.12).toFixed(2);
     return {
       style: {
         backgroundColor: `rgba(16, 185, 129, ${opacity})`,
-        borderColor: "rgba(52, 211, 153, 0.35)",
+        borderColor: dark ? "rgba(52, 211, 153, 0.35)" : "rgba(5, 150, 105, 0.3)",
       },
-      badgeCls: "text-emerald-300",
+      badgeCls: "text-emerald-700 dark:text-emerald-300",
     };
   }
   if (score >= 0) {
-    const opacity = (0.1 + intensity * 0.16).toFixed(2);
+    const opacity = (dark ? 0.12 + intensity * 0.16 : 0.14 + intensity * 0.14).toFixed(2);
     return {
       style: {
-        backgroundColor: `rgba(245, 158, 11, ${opacity})`,
-        borderColor: "rgba(251, 191, 36, 0.3)",
+        backgroundColor: `rgba(227, 200, 125, ${opacity})`,
+        borderColor: dark ? "rgba(227, 200, 125, 0.35)" : "rgba(217, 119, 6, 0.32)",
       },
-      badgeCls: "text-amber-300",
+      badgeCls: "text-amber-800 dark:text-brand-gold",
     };
   }
-  const opacity = (0.14 + intensity * 0.24).toFixed(2);
+  const opacity = (dark ? 0.14 + intensity * 0.22 : 0.08 + intensity * 0.12).toFixed(2);
   return {
     style: {
-      backgroundColor: `rgba(244, 63, 94, ${opacity})`,
-      borderColor: "rgba(251, 113, 133, 0.35)",
+      backgroundColor: `rgba(239, 68, 68, ${opacity})`,
+      borderColor: dark ? "rgba(248, 113, 113, 0.35)" : "rgba(220, 38, 38, 0.28)",
     },
-    badgeCls: "text-rose-300",
+    badgeCls: "text-red-700 dark:text-red-300",
   };
 }
 
 export default function SectorHeatmap({ sectors = [], onSelectSector }) {
+  const { dark } = useTheme();
   if (!sectors.length) {
     return null;
   }
@@ -48,7 +54,7 @@ export default function SectorHeatmap({ sectors = [], onSelectSector }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {sectors.map((item) => {
-        const theme = getTileColor(item.avg_score, maxAbs);
+        const tile = getTileStyle(item.avg_score, maxAbs, dark);
         const isClickable = typeof onSelectSector === "function";
         const Tag = isClickable ? "button" : "div";
 
@@ -57,40 +63,36 @@ export default function SectorHeatmap({ sectors = [], onSelectSector }) {
             key={item.sector}
             type={isClickable ? "button" : undefined}
             onClick={isClickable ? () => onSelectSector(item.sector) : undefined}
-            style={typeof theme === "object" ? theme.style : undefined}
-            className={`flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all ${
-              typeof theme === "string" ? theme : ""
-            } ${isClickable ? "cursor-pointer hover:brightness-110" : ""}`}
+            style={tile.style}
+            className={`flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all duration-200 ${
+              tile.className || ""
+            } ${isClickable ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md" : ""}`}
           >
             <div className="flex items-start justify-between gap-2">
-              <span className="line-clamp-2 text-xs font-semibold text-white">
+              <span className="line-clamp-2 text-xs font-semibold text-stone-900 dark:text-stone-100">
                 {item.sector}
               </span>
-              <span className="shrink-0 rounded-md bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-stone-300">
+              <span className="shrink-0 rounded-md bg-white/75 px-1.5 py-0.5 text-[10px] font-semibold text-stone-700 dark:bg-stone-900/60 dark:text-stone-300">
                 {item.count}
               </span>
             </div>
 
             <div className="mt-3 flex items-baseline justify-between gap-2">
               <div>
-                <div className="text-[10px] uppercase tracking-wider text-stone-400">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Avg Score
                 </div>
-                <div
-                  className={`font-display text-lg font-bold ${
-                    typeof theme === "object" ? theme.badgeCls : "text-stone-200"
-                  }`}
-                >
+                <div className={`font-display text-lg font-bold tabular-nums ${tile.badgeCls}`}>
                   {item.avg_score !== null && item.avg_score !== undefined
                     ? item.avg_score.toFixed(2)
                     : "—"}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] text-stone-400">
+              <div className="text-right tabular-nums">
+                <div className="text-[10px] text-stone-600 dark:text-stone-400">
                   12-1M: {formatPct(item.avg_momentum, 1)}
                 </div>
-                <div className="text-[10px] text-stone-400">
+                <div className="text-[10px] text-stone-600 dark:text-stone-400">
                   &gt;200DMA:{" "}
                   {item.pct_above_200dma !== null ? `${item.pct_above_200dma}%` : "—"}
                 </div>
@@ -98,8 +100,11 @@ export default function SectorHeatmap({ sectors = [], onSelectSector }) {
             </div>
 
             {item.top_symbol && (
-              <div className="mt-2 border-t border-white/10 pt-1.5 text-[11px] text-stone-300">
-                Leader: <span className="font-semibold text-white">{shortSymbol(item.top_symbol)}</span>
+              <div className="mt-2 border-t border-stone-300/60 pt-1.5 text-[11px] text-stone-600 dark:border-stone-700/70 dark:text-stone-300">
+                Leader:{" "}
+                <span className="font-semibold text-stone-900 dark:text-stone-100">
+                  {shortSymbol(item.top_symbol)}
+                </span>
               </div>
             )}
           </Tag>

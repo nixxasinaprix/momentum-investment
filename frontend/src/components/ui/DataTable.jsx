@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import Button from "./Button";
 import { EmptyState } from "./StateViews";
 
 export default function DataTable({
@@ -9,6 +10,8 @@ export default function DataTable({
   defaultSortKey = null,
   defaultSortDir = "asc",
   pageSize = 25,
+  stickyHeader = false,
+  zebra = false,
   onRowClick,
   emptyTitle = "No matching rows",
   emptyDescription = "Try clearing your filters or adjusting the search query.",
@@ -61,11 +64,17 @@ export default function DataTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#12131F]/90 shadow-lg">
-      <div className="overflow-x-auto">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-stone-200/90 bg-white/80 shadow-xl backdrop-blur-md transition-colors duration-700 dark:border-stone-800 dark:bg-stone-900/80">
+      <div className={`overflow-x-auto ${stickyHeader ? "max-h-[70vh]" : ""}`}>
         <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-white/10 bg-white/[0.03] text-xs font-semibold uppercase tracking-wider text-stone-400">
+          <thead
+            className={
+              stickyHeader
+                ? "sticky top-0 z-10 bg-stone-100/95 backdrop-blur-md dark:bg-stone-900/95"
+                : "bg-stone-100/80 dark:bg-stone-800/50"
+            }
+          >
+            <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:text-stone-400">
               {columns.map((col) => {
                 const active = sortKey === col.key;
                 return (
@@ -86,12 +95,18 @@ export default function DataTable({
                       <button
                         type="button"
                         onClick={() => handleSort(col)}
-                        className={`inline-flex items-center gap-1.5 rounded focus:outline-none focus:ring-1 focus:ring-[#F0867C] hover:text-white ${
+                        className={`inline-flex items-center gap-1.5 rounded transition-colors hover:text-brand-plum focus:outline-none dark:hover:text-brand-coral ${
                           col.align === "right" ? "flex-row-reverse" : ""
                         }`}
                       >
                         <span>{col.label}</span>
-                        <span className={active ? "text-[#F0867C]" : "text-stone-600"}>
+                        <span
+                          className={
+                            active
+                              ? "text-brand-plum dark:text-brand-coral"
+                              : "text-stone-400 dark:text-stone-600"
+                          }
+                        >
                           {active ? (
                             sortDir === "asc" ? (
                               <ArrowUp className="h-3.5 w-3.5" />
@@ -111,8 +126,8 @@ export default function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06]">
-            {pagedRows.map((row) => (
+          <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/80">
+            {pagedRows.map((row, idx) => (
               <tr
                 key={row[rowKey]}
                 tabIndex={onRowClick ? 0 : undefined}
@@ -128,15 +143,19 @@ export default function DataTable({
                     : undefined
                 }
                 className={`transition-colors ${
+                  zebra && idx % 2 === 1
+                    ? "bg-surface-cream/40 dark:bg-stone-800/20"
+                    : ""
+                } ${
                   onRowClick
-                    ? "cursor-pointer hover:bg-white/[0.04] focus:bg-white/[0.06] focus:outline-none"
-                    : "hover:bg-white/[0.02]"
+                    ? "cursor-pointer hover:bg-stone-100/80 focus:bg-stone-100 focus:outline-none dark:hover:bg-stone-800/60 dark:focus:bg-stone-800/70"
+                    : "hover:bg-stone-100/50 dark:hover:bg-stone-800/40"
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-stone-200 ${
+                    className={`px-4 py-3 text-stone-700 dark:text-stone-200 ${
                       col.align === "right" ? "text-right tabular-nums" : ""
                     }`}
                   >
@@ -150,37 +169,40 @@ export default function DataTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/[0.02] px-4 py-3 text-xs text-stone-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200/80 bg-surface-cream/65 px-4 py-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
           <span>
             Showing{" "}
-            <strong className="text-stone-200">
+            <strong className="text-stone-900 dark:text-stone-100">
               {(safePage - 1) * pageSize + 1}–
               {Math.min(safePage * pageSize, sortedRows.length)}
             </strong>{" "}
-            of <strong className="text-stone-200">{sortedRows.length}</strong>
+            of{" "}
+            <strong className="text-stone-900 dark:text-stone-100">
+              {sortedRows.length}
+            </strong>
           </span>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="xs"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-stone-200 transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               Prev
-            </button>
-            <span className="px-2 font-medium text-stone-300">
+            </Button>
+            <span className="px-2 font-medium text-stone-700 dark:text-stone-300">
               Page {safePage} / {totalPages}
             </span>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="xs"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-stone-200 transition hover:border-white/25 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
               <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
       )}

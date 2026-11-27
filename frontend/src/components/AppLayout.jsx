@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   BarChart3,
   BookOpen,
+  ChevronDown,
   Compass,
   Filter,
   GitCompare,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -14,11 +17,11 @@ import {
   Sparkles,
   Star,
   X,
-  Zap,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { clearApiCache } from "../hooks/useCachedApi";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { Badge, BrandMark, ThemeToggle } from "./ui";
 
 const NAV_ITEMS = [
   { to: "/picks", label: "Today's Picks", icon: Sparkles },
@@ -36,12 +39,34 @@ export default function AppLayout({ title, subtitle, actions, children }) {
   const { watchlist } = useWatchlist();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     document.title = title
       ? `${title} · Momentum Investment`
       : "Momentum Investment";
   }, [title]);
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === "Escape") {
+        setUserMenuOpen(false);
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
 
   const handleLogout = () => {
     clearApiCache();
@@ -50,7 +75,7 @@ export default function AppLayout({ title, subtitle, actions, children }) {
   };
 
   const renderNavLinks = (onNavigate) => (
-    <nav className="flex-1 space-y-1 px-3 py-4">
+    <nav aria-label="Workspace navigation" className="flex-1 space-y-1 px-3 py-4">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         return (
@@ -59,21 +84,39 @@ export default function AppLayout({ title, subtitle, actions, children }) {
             to={item.to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+              `flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all duration-300 ${
                 isActive
-                  ? "border border-[#F0867C]/35 bg-gradient-to-r from-[#8C4570]/45 to-[#F0867C]/15 text-white shadow-sm"
-                  : "border border-transparent text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
+                  ? "border-brand-plum/30 bg-brand-plum text-stone-50 shadow-lg shadow-brand-plum/30 dark:border-brand-coral/35 dark:bg-brand-plumDark dark:shadow-brand-plumDark/30"
+                  : "border-transparent text-stone-700 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800/70 dark:hover:text-brand-coral"
               }`
             }
           >
-            <span className="flex items-center gap-3">
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </span>
-            {item.to === "/watchlist" && watchlist.length > 0 && (
-              <span className="rounded-full bg-[#F0867C]/20 px-2 py-0.5 text-[11px] font-semibold text-[#F0867C]">
-                {watchlist.length}
-              </span>
+            {({ isActive }) => (
+              <>
+                <span className="flex items-center gap-3">
+                  <Icon
+                    className={`h-4 w-4 shrink-0 ${
+                      isActive
+                        ? "text-stone-50 dark:text-brand-gold"
+                        : "text-stone-500 dark:text-stone-400"
+                    }`}
+                  />
+                  {item.label}
+                </span>
+                {item.to === "/watchlist" && watchlist.length > 0 && (
+                  <Badge
+                    variant={isActive ? "neutral" : "coral"}
+                    size="xs"
+                    className={
+                      isActive
+                        ? "border-stone-50/30 bg-stone-50/20 text-stone-50"
+                        : ""
+                    }
+                  >
+                    {watchlist.length}
+                  </Badge>
+                )}
+              </>
             )}
           </NavLink>
         );
@@ -81,121 +124,211 @@ export default function AppLayout({ title, subtitle, actions, children }) {
     </nav>
   );
 
+  const renderSidebarFooter = () => (
+    <div className="border-t border-stone-200/70 p-4 dark:border-stone-800/70">
+      <div className="rounded-xl border border-stone-200/90 bg-white/75 p-3 shadow-sm backdrop-blur-sm dark:border-stone-800 dark:bg-stone-800/60">
+        <div className="flex items-center gap-2 text-xs font-semibold text-stone-800 dark:text-stone-200">
+          <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Benchmark: NIFTY 200</span>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+          Educational momentum research tool. Not investment advice.
+        </p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="dark flex min-h-[100dvh] bg-[#07080F] font-sans text-white antialiased">
+    <div className="relative z-10 flex min-h-[100dvh] font-sans text-stone-900 antialiased transition-colors duration-700 dark:text-stone-100">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-[#0B0C16] lg:flex">
-        <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-5">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#F0867C] to-[#6E3559] shadow-md">
-              <Zap className="h-5 w-5 text-white" fill="currentColor" />
-            </div>
-            <div>
-              <div className="font-display text-sm font-bold tracking-tight text-white">
-                Momentum Lab
-              </div>
-              <div className="text-[10px] font-medium uppercase tracking-widest text-[#F0867C]">
-                Nifty 500 Pipeline
-              </div>
-            </div>
+      <aside className="relative z-20 hidden w-64 shrink-0 flex-col border-r border-stone-200/70 bg-white/80 backdrop-blur-lg transition-colors duration-700 dark:border-stone-800/70 dark:bg-stone-900/80 lg:flex">
+        <div className="flex h-16 items-center border-b border-stone-200/70 px-5 dark:border-stone-800/70">
+          <Link to="/" className="min-w-0">
+            <BrandMark title="Momentum Lab" subtitle="Nifty 500 Pipeline" />
           </Link>
         </div>
 
         {renderNavLinks(undefined)}
-
-        <div className="border-t border-white/10 p-4">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-stone-300">
-              <Activity className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Benchmark: NIFTY 200</span>
-            </div>
-            <p className="mt-1 text-[11px] text-stone-500">
-              Educational momentum research tool. Not investment advice.
-            </p>
-          </div>
-        </div>
+        {renderSidebarFooter()}
       </aside>
 
       {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="relative z-10 flex w-72 flex-col border-r border-white/10 bg-[#0B0C16]">
-            <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
-              <Link
-                to="/"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2.5"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#F0867C] to-[#6E3559]">
-                  <Zap className="h-4 w-4 text-white" fill="currentColor" />
-                </div>
-                <span className="font-display text-sm font-bold text-white">
-                  Momentum Lab
-                </span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-1.5 text-stone-400 hover:bg-white/10 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {renderNavLinks(() => setMobileOpen(false))}
-          </aside>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 flex lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-stone-950/55 backdrop-blur-sm dark:bg-surface-night/80"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-10 flex w-72 max-w-[85vw] flex-col border-r border-stone-200 bg-surface-cream/95 shadow-2xl backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/95"
+            >
+              <div className="flex h-16 items-center justify-between border-b border-stone-200/80 px-5 dark:border-stone-800">
+                <Link to="/" onClick={() => setMobileOpen(false)}>
+                  <BrandMark size="sm" title="Momentum Lab" subtitle="Nifty 500" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(false)}
+                  aria-label="Close navigation"
+                  className="rounded-lg p-1.5 text-stone-600 transition hover:bg-stone-200/70 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-brand-coral"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {renderNavLinks(() => setMobileOpen(false))}
+              {renderSidebarFooter()}
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main content area */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-[#07080F]/85 backdrop-blur-xl">
-          <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-x-clip">
+        <header className="sticky top-0 z-30 border-b border-stone-200/60 bg-white/80 backdrop-blur-lg transition-colors duration-700 dark:border-stone-800/70 dark:bg-stone-900/80">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                className="rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 hover:text-white lg:hidden"
+                className="rounded-full border border-stone-300 bg-white/85 p-2 text-stone-700 shadow-sm transition hover:border-brand-plum hover:text-brand-plum dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-300 dark:hover:border-brand-coral dark:hover:text-brand-coral lg:hidden"
                 aria-label="Open navigation"
               >
                 <Menu className="h-5 w-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-lg font-bold tracking-tight text-white sm:text-xl">
-                  {title}
+                <h1 className="truncate font-display text-lg font-bold tracking-tight sm:text-xl">
+                  <span className="bg-gradient-to-r from-brand-plum via-brand-coral to-brand-gold bg-clip-text text-transparent dark:from-brand-coral dark:via-brand-gold dark:to-surface-cream">
+                    {title}
+                  </span>
                 </h1>
                 {subtitle && (
-                  <p className="hidden truncate text-xs text-stone-400 sm:block">
+                  <p className="hidden truncate text-xs text-stone-600 dark:text-stone-400 sm:block">
                     {subtitle}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
-              {actions}
-              <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300 md:flex">
-                <Compass className="h-3.5 w-3.5 text-[#F0867C]" />
-                <span className="max-w-[180px] truncate">{user?.email}</span>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+              {actions && (
+                <div className="hidden sm:flex sm:items-center sm:gap-2">
+                  {actions}
+                </div>
+              )}
+              <ThemeToggle />
+
+              {/* User Menu */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="menu"
+                  className="inline-flex h-9 items-center gap-2 rounded-full border border-stone-300 bg-white/85 px-3 text-xs font-medium text-stone-700 shadow-sm backdrop-blur-sm transition-colors duration-300 hover:border-brand-plum dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-200 dark:hover:border-brand-coral"
+                >
+                  <Compass className="h-3.5 w-3.5 text-brand-plum dark:text-brand-coral" />
+                  <span className="hidden max-w-[150px] truncate md:inline">
+                    {user?.email || "Account"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-stone-400" />
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      role="menu"
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                      transition={{ duration: 0.16 }}
+                      className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-2xl border border-stone-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-lg dark:border-stone-800 dark:bg-stone-900/95"
+                    >
+                      <div className="border-b border-stone-200/80 px-3 py-2 dark:border-stone-800">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                          Signed in as
+                        </div>
+                        <div className="truncate text-xs font-semibold text-stone-900 dark:text-stone-100">
+                          {user?.email}
+                        </div>
+                      </div>
+                      <Link
+                        to="/"
+                        role="menuitem"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                      >
+                        <Home className="h-3.5 w-3.5" />
+                        Landing Page
+                      </Link>
+                      <Link
+                        to="/watchlist"
+                        role="menuitem"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Star className="h-3.5 w-3.5" />
+                          Watchlist
+                        </span>
+                        <span className="text-[11px] text-stone-500 dark:text-stone-400">
+                          {watchlist.length}
+                        </span>
+                      </Link>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={handleLogout}
+                        className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Log out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-stone-200 transition hover:border-[#F0867C]/60 hover:bg-[#8C4570]/40 hover:text-white"
+                aria-label="Log out"
+                className="hidden h-9 items-center gap-1.5 rounded-full border border-stone-300 bg-white/85 px-3.5 text-xs font-semibold text-stone-700 shadow-sm backdrop-blur-sm transition-colors duration-300 hover:border-brand-plum hover:text-brand-plum dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-200 dark:hover:border-brand-coral dark:hover:text-brand-coral sm:inline-flex"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Log out</span>
+                <span>Log out</span>
               </button>
             </div>
           </div>
+          {actions && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-stone-200/60 px-4 py-2 dark:border-stone-800/60 sm:hidden">
+              {actions}
+            </div>
+          )}
         </header>
 
-        <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          {children}
+        <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="min-w-0 w-full"
+          >
+            {children}
+          </motion.div>
         </main>
+
+        <footer className="border-t border-stone-200/70 bg-white/60 px-4 py-3 text-center text-[11px] text-stone-600 backdrop-blur-md transition-colors duration-700 dark:border-stone-800/70 dark:bg-stone-900/60 dark:text-stone-400 sm:px-6 lg:px-8">
+          Educational quantitative momentum research workspace — not investment advice.
+        </footer>
       </div>
     </div>
   );
