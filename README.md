@@ -255,15 +255,19 @@ flowchart LR
 
 ## Screenshots
 
-| Page | Preview |
-|---|---|
-| Landing Page | ![Landing](docs/screenshots/landing.png) |
-| Sign In | ![Login](docs/screenshots/login.png) |
-| Market Overview (`/dashboard`) | ![Dashboard](docs/screenshots/dashboard.png) |
-| Momentum Screener (`/screener`) | ![Screener](docs/screenshots/screener.png) |
-| Stock Analysis (`/stock/:symbol`) | ![Stock Detail](docs/screenshots/stock-detail.png) |
-| Strategy Lab (`/strategy`) | ![Strategy Lab](docs/screenshots/strategy-lab.png) |
-| Backtester (`/backtest`) | ![Backtest](docs/screenshots/backtest.png) |
-| Compare Stocks (`/compare`) | ![Compare](docs/screenshots/compare.png) |
-| Momentum 101 (`/learn`) | ![Learn](docs/screenshots/learn.png) |
-| Watchlist (`/watchlist`) | ![Watchlist](docs/screenshots/watchlist.png) |
+See [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) for the extracted palette, typography, glass surfaces, chart theme, and motion tokens shared across the landing page, login flow, and Momentum Lab workspace.
+
+| Page | Light (Desktop) | Dark (Desktop) | Mobile (`390px`) |
+|---|---|---|---|
+| Landing Page (`/`) | ![Landing](docs/screenshots/landing.png) | [Dark](docs/screenshots/landing-dark.png) | [Mobile](docs/screenshots/landing-mobile.png) |
+| Sign In (`/login`) | ![Login](docs/screenshots/login.png) | [Dark](docs/screenshots/login-dark.png) | [Mobile](docs/screenshots/login-mobile.png) |
+| Today's Picks (`/picks`) | ![Today's Picks](docs/screenshots/picks.png) | [Dark](docs/screenshots/picks-dark.png) | [Mobile](docs/screenshots/picks-mobile.png) |
+| Strategy Builder (`/strategy`) | ![Strategy Lab](docs/screenshots/strategy-lab.png) | [Dark](docs/screenshots/strategy-lab-dark.png) | [Mobile](docs/screenshots/strategy-lab-mobile.png) |
+| Market Overview (`/dashboard`) | ![Dashboard](docs/screenshots/dashboard.png) | [Dark](docs/screenshots/dashboard-dark.png) | [Mobile](docs/screenshots/dashboard-mobile.png) |
+| Momentum Screener (`/screener`) | ![Screener](docs/screenshots/screener.png) | [Dark](docs/screenshots/screener-dark.png) | [Mobile](docs/screenshots/screener-mobile.png) |
+| Stock Analysis (`/stock/:symbol`) | ![Stock Detail](docs/screenshots/stock-detail.png) | [Dark](docs/screenshots/stock-detail-dark.png) | [Mobile](docs/screenshots/stock-detail-mobile.png) |
+| Compare Stocks (`/compare`) | ![Compare](docs/screenshots/compare.png) | [Dark](docs/screenshots/compare-dark.png) | [Mobile](docs/screenshots/compare-mobile.png) |
+| Backtester (`/backtest`) | ![Backtest](docs/screenshots/backtest.png) | [Dark](docs/screenshots/backtest-dark.png) | [Mobile](docs/screenshots/backtest-mobile.png) |
+| Momentum 101 (`/learn`) | ![Learn](docs/screenshots/learn.png) | [Dark](docs/screenshots/learn-dark.png) | [Mobile](docs/screenshots/learn-mobile.png) |
+| Watchlist (`/watchlist`) | ![Watchlist](docs/screenshots/watchlist.png) | [Dark](docs/screenshots/watchlist-dark.png) | [Mobile](docs/screenshots/watchlist-mobile.png) |
+| 404 Not Found (`*`) | ![Not Found](docs/screenshots/not-found.png) | [Dark](docs/screenshots/not-found-dark.png) | [Mobile](docs/screenshots/not-found-mobile.png) |
