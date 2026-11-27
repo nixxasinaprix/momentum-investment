@@ -44,9 +44,9 @@ import { formatINR, formatPct, shortSymbol } from "../lib/format";
 function MomentumMoverList({ title, subtitle, items, positive, onSelect }) {
   return (
     <GlassCard as="section" padding="p-0" className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-stone-200/80 px-5 py-4 dark:border-stone-800">
+      <div className="lab-table-head flex items-center justify-between px-5 py-4">
         <div>
-          <h2 className="flex items-center gap-2 font-display text-base font-bold text-stone-900 dark:text-stone-100">
+          <h2 className="flex items-center gap-2 font-display text-base font-bold text-[var(--text-primary)]">
             {positive ? (
               <ArrowUpRight className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             ) : (
@@ -54,7 +54,7 @@ function MomentumMoverList({ title, subtitle, items, positive, onSelect }) {
             )}
             {title}
           </h2>
-          <p className="mt-0.5 text-xs text-stone-600 dark:text-stone-400">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{subtitle}</p>
         </div>
       </div>
 
@@ -66,25 +66,25 @@ function MomentumMoverList({ title, subtitle, items, positive, onSelect }) {
           />
         </div>
       ) : (
-        <div className="divide-y divide-stone-200/70 dark:divide-stone-800/80">
+        <div className="divide-y divide-[var(--border-table)]">
           {items.map((item) => (
             <button
               key={item.symbol}
               type="button"
               onClick={() => onSelect(item.symbol)}
-              className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition-colors hover:bg-stone-100/80 dark:hover:bg-stone-800/50"
+              className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-table-hover)]"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-[2.25rem] text-xs font-semibold tabular-nums text-stone-500 dark:text-stone-400">
+                  <Badge variant="plum" size="xs" className="tabular-nums">
                     #{item.rank}
-                  </span>
-                  <span className="font-semibold text-stone-900 dark:text-stone-100">
+                  </Badge>
+                  <span className="font-bold text-[var(--text-primary)]">
                     {shortSymbol(item.symbol)}
                   </span>
                   <TrendBadge trend={item.trend} />
                 </div>
-                <p className="mt-0.5 truncate pl-11 text-xs text-stone-600 dark:text-stone-400">
+                <p className="mt-0.5 truncate pl-1 text-xs text-[var(--text-muted)]">
                   {item.name} · {item.sector}
                 </p>
               </div>
@@ -94,14 +94,14 @@ function MomentumMoverList({ title, subtitle, items, positive, onSelect }) {
               </div>
 
               <div className="shrink-0 text-right tabular-nums">
-                <div className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                <div className="text-sm font-extrabold text-[var(--text-primary)]">
                   {item.score !== null ? item.score.toFixed(2) : "—"}
                 </div>
                 <div
-                  className={`text-xs font-semibold ${
+                  className={`text-xs font-bold ${
                     (item.ret_12_1m ?? 0) >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-red-700 dark:text-red-300"
                   }`}
                 >
                   {formatPct(item.ret_12_1m, 1)}
@@ -239,10 +239,10 @@ export default function Dashboard() {
           <GlassCard as="section">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Market Breadth (Trailing 1 Year)
                 </h2>
-                <p className="text-xs text-stone-600 dark:text-stone-400">
+                <p className="text-xs text-[var(--text-muted)]">
                   Percentage of tracked Nifty 200 constituents trading above their 50-day and 200-day moving averages
                 </p>
               </div>
@@ -344,10 +344,10 @@ export default function Dashboard() {
           <GlassCard as="section">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Sector Momentum Heatmap
                 </h2>
-                <p className="text-xs text-stone-600 dark:text-stone-400">
+                <p className="text-xs text-[var(--text-muted)]">
                   Click any sector tile to filter the Screener by that industry
                 </p>
               </div>

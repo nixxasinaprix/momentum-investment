@@ -128,7 +128,7 @@ export default function TodaysPicks() {
             className={`rounded-lg p-1 transition ${
               watched
                 ? "text-amber-500 dark:text-brand-gold"
-                : "text-stone-400 hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300"
+                : "text-brand-plum/35 hover:text-brand-plum dark:text-brand-coral/35 dark:hover:text-brand-coral"
             }`}
           >
             <Star className="h-4 w-4" fill={watched ? "currentColor" : "none"} />
@@ -142,9 +142,9 @@ export default function TodaysPicks() {
       sortable: true,
       defaultDir: "asc",
       render: (r) => (
-        <span className="font-bold tabular-nums text-stone-900 dark:text-stone-100">
+        <Badge variant="plum" size="xs" className="tabular-nums">
           #{r.rank}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -154,10 +154,10 @@ export default function TodaysPicks() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-stone-900 dark:text-stone-100">
+          <div className="font-bold text-[var(--text-primary)]">
             {shortSymbol(r.symbol)}
           </div>
-          <div className="max-w-[180px] truncate text-xs text-stone-500 dark:text-stone-400">
+          <div className="max-w-[180px] truncate text-xs text-[var(--text-muted)]">
             {r.name}
           </div>
         </div>
@@ -179,9 +179,9 @@ export default function TodaysPicks() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
+        <Badge variant="coral" size="xs" className="font-display tabular-nums">
           {r.score != null ? r.score.toFixed(3) : "—"}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -191,10 +191,10 @@ export default function TodaysPicks() {
       align: "right",
       render: (r) => (
         <span
-          className={`font-semibold ${
+          className={`font-bold ${
             (r.ret_12_1m ?? 0) >= 0
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-red-600 dark:text-red-400"
+              ? "text-emerald-700 dark:text-emerald-300"
+              : "text-red-700 dark:text-red-300"
           }`}
         >
           {formatPct(r.ret_12_1m, 1)}
@@ -207,7 +207,7 @@ export default function TodaysPicks() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className="text-xs text-stone-600 dark:text-stone-300">
+        <span className="text-xs font-medium text-[var(--text-secondary)]">
           {formatMcap(r.market_cap_cr)}
         </span>
       ),
@@ -229,7 +229,7 @@ export default function TodaysPicks() {
       label: "Why Picked",
       sortable: false,
       render: (r) => (
-        <span className="block max-w-[260px] text-xs text-stone-600 dark:text-stone-300">
+        <span className="block max-w-[260px] text-xs text-[var(--text-muted)]">
           {r.reason_picked}
         </span>
       ),
@@ -244,10 +244,10 @@ export default function TodaysPicks() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-stone-900 dark:text-stone-100">
+          <div className="font-bold text-[var(--text-primary)]">
             {shortSymbol(r.symbol)}
           </div>
-          <div className="max-w-[180px] truncate text-xs text-stone-500 dark:text-stone-400">
+          <div className="max-w-[180px] truncate text-xs text-[var(--text-muted)]">
             {r.name}
           </div>
         </div>
@@ -326,21 +326,23 @@ export default function TodaysPicks() {
           right={
             <>
               <span>
-                Method: <strong>{params.method}</strong>
+                Method: <strong className="text-[var(--text-primary)]">{params.method}</strong>
               </span>
               <span>
                 Lookback:{" "}
-                <strong>
+                <strong className="text-[var(--text-primary)]">
                   {params.lookback_days}d / {params.skip_days}d
                 </strong>
               </span>
               <span>
                 Min Cap:{" "}
-                <strong>₹{params.min_market_cap_cr.toLocaleString("en-IN")} Cr</strong>
+                <strong className="text-[var(--text-primary)]">
+                  ₹{params.min_market_cap_cr.toLocaleString("en-IN")} Cr
+                </strong>
               </span>
               <Link
                 to="/screener"
-                className="font-semibold text-brand-plum underline hover:text-brand-plumHover dark:text-brand-coral dark:hover:text-brand-gold"
+                className="font-bold text-brand-plum underline hover:text-brand-plumHover dark:text-brand-coral dark:hover:text-brand-gold"
               >
                 Open Screener
               </Link>
@@ -424,7 +426,7 @@ export default function TodaysPicks() {
                             navigate(`/stock/${encodeURIComponent(stock.symbol)}`);
                           }
                         }}
-                        className="group flex min-w-0 flex-col justify-between"
+                        className="group relative flex min-w-0 flex-col justify-between overflow-hidden"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
@@ -433,7 +435,7 @@ export default function TodaysPicks() {
                                 <Badge variant="plum" size="xs">
                                   #{stock.rank}
                                 </Badge>
-                                <span className="truncate font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                                <span className="truncate font-display text-base font-bold text-[var(--text-primary)]">
                                   {shortSymbol(stock.symbol)}
                                 </span>
                                 <Badge
@@ -443,7 +445,7 @@ export default function TodaysPicks() {
                                   {stock.action}
                                 </Badge>
                               </div>
-                              <p className="mt-1 truncate text-xs text-stone-600 dark:text-stone-400">
+                              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
                                 {stock.name} · {stock.sector}
                               </p>
                             </div>
@@ -457,7 +459,7 @@ export default function TodaysPicks() {
                               className={`shrink-0 rounded-lg p-1 transition ${
                                 watched
                                   ? "text-amber-500 dark:text-brand-gold"
-                                  : "text-stone-400 hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300"
+                                  : "text-brand-plum/35 hover:text-brand-plum dark:text-brand-coral/35 dark:hover:text-brand-coral"
                               }`}
                               aria-label="Toggle watchlist"
                             >
@@ -467,10 +469,10 @@ export default function TodaysPicks() {
 
                           <div className="mt-3 flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="text-lg font-bold tabular-nums text-stone-900 dark:text-stone-100">
+                              <div className="text-lg font-extrabold tabular-nums text-[var(--text-primary)]">
                                 {formatINR(stock.last_price)}
                               </div>
-                              <div className="text-[11px] text-stone-600 dark:text-stone-400">
+                              <div className="text-[11px] font-medium text-[var(--text-muted)]">
                                 Cap: {formatMcap(stock.market_cap_cr)}
                               </div>
                             </div>
@@ -479,17 +481,17 @@ export default function TodaysPicks() {
                             </div>
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-stone-200/80 pt-2.5 text-xs dark:border-stone-800">
+                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-table)] pt-2.5 text-xs">
                             <TrendBadge trend={stock.trend} />
-                            <span className="font-display font-bold tabular-nums text-brand-plum dark:text-brand-coral">
+                            <Badge variant="coral" size="xs" className="font-display tabular-nums">
                               Score {stock.score != null ? stock.score.toFixed(2) : "—"}
-                            </span>
+                            </Badge>
                           </div>
                         </div>
 
-                        <p className="mt-2.5 flex items-center justify-between gap-1 text-[11px] leading-snug text-stone-600 dark:text-stone-400">
+                        <p className="mt-2.5 flex items-center justify-between gap-1 text-[11px] leading-snug text-[var(--text-muted)]">
                           <span className="line-clamp-2">{stock.reason_picked}</span>
-                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-plum dark:text-stone-500 dark:group-hover:text-brand-coral" />
+                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-brand-plum/60 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-plum dark:text-brand-coral/70 dark:group-hover:text-brand-coral" />
                         </p>
                       </GlassCard>
                     );
@@ -503,12 +505,12 @@ export default function TodaysPicks() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                    <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                       Rebalance Changes Since Last Month
                     </h2>
                     <Tooltip content="Compares today's top-N survivors with the portfolio from the prior month-end close." />
                   </div>
-                  <p className="text-xs text-stone-600 dark:text-stone-400">
+                  <p className="text-xs text-[var(--text-muted)]">
                     Comparing {data.as_of} against prior month-end ({data.prev_rebalance_date || "N/A"})
                   </p>
                 </div>
@@ -518,13 +520,13 @@ export default function TodaysPicks() {
                 <Card
                   variant="well"
                   padding="p-4"
-                  className="border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/25 dark:bg-emerald-500/[0.06]"
+                  className="border-emerald-300 bg-emerald-50/75 dark:border-emerald-500/35 dark:bg-emerald-500/[0.12]"
                 >
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-200">
                     Buy · New Entries ({changes.buy.length})
                   </div>
                   {!changes.buy.length ? (
-                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                    <p className="text-xs text-[var(--text-muted)]">
                       No new additions this month.
                     </p>
                   ) : (
@@ -533,12 +535,12 @@ export default function TodaysPicks() {
                         <Link
                           key={b.symbol}
                           to={`/stock/${encodeURIComponent(b.symbol)}`}
-                          className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
+                          className="lab-well flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition hover:border-emerald-400"
                         >
-                          <span className="font-semibold text-stone-900 dark:text-stone-100">
+                          <span className="font-bold text-[var(--text-primary)]">
                             #{b.rank} {shortSymbol(b.symbol)}
                           </span>
-                          <span className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+                          <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
                             {b.score != null ? b.score.toFixed(2) : "—"}
                           </span>
                         </Link>
@@ -550,13 +552,13 @@ export default function TodaysPicks() {
                 <Card
                   variant="well"
                   padding="p-4"
-                  className="border-red-200 bg-red-50/70 dark:border-red-500/25 dark:bg-red-500/[0.06]"
+                  className="border-red-300 bg-red-50/75 dark:border-red-500/35 dark:bg-red-500/[0.12]"
                 >
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-red-800 dark:text-red-200">
                     Sell · Exits ({changes.sell.length})
                   </div>
                   {!changes.sell.length ? (
-                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                    <p className="text-xs text-[var(--text-muted)]">
                       No exits since last month.
                     </p>
                   ) : (
@@ -565,15 +567,15 @@ export default function TodaysPicks() {
                         <Link
                           key={s.symbol}
                           to={`/stock/${encodeURIComponent(s.symbol)}`}
-                          className="block rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
+                          className="lab-well block rounded-xl px-2.5 py-1.5 text-xs transition hover:border-red-400"
                         >
-                          <div className="flex justify-between font-semibold text-stone-900 dark:text-stone-100">
+                          <div className="flex justify-between font-bold text-[var(--text-primary)]">
                             <span>{shortSymbol(s.symbol)}</span>
-                            <span className="text-stone-500 dark:text-stone-400">
+                            <span className="text-[var(--text-muted)]">
                               was #{s.prev_rank}
                             </span>
                           </div>
-                          <div className="truncate text-[11px] text-red-700/90 dark:text-red-300/85">
+                          <div className="truncate text-[11px] text-red-700 dark:text-red-300">
                             {s.reason}
                           </div>
                         </Link>
@@ -585,13 +587,13 @@ export default function TodaysPicks() {
                 <Card
                   variant="well"
                   padding="p-4"
-                  className="border-brand-plum/25 bg-brand-plum/[0.06] dark:border-brand-mauve/30 dark:bg-brand-mauve/[0.07]"
+                  className="border-brand-plum/30 dark:border-brand-mauve/40"
                 >
                   <div className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-plum dark:text-brand-mauve">
                     Hold · Retained ({changes.hold.length})
                   </div>
                   {!changes.hold.length ? (
-                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                    <p className="text-xs text-[var(--text-muted)]">
                       No retained holdings.
                     </p>
                   ) : (
@@ -600,12 +602,12 @@ export default function TodaysPicks() {
                         <Link
                           key={h.symbol}
                           to={`/stock/${encodeURIComponent(h.symbol)}`}
-                          className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
+                          className="lab-well flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition hover:border-brand-plum dark:hover:border-brand-coral"
                         >
-                          <span className="font-semibold text-stone-900 dark:text-stone-100">
+                          <span className="font-bold text-[var(--text-primary)]">
                             #{h.rank} {shortSymbol(h.symbol)}
                           </span>
-                          <span className="text-stone-500 dark:text-stone-400">
+                          <span className="text-[var(--text-muted)]">
                             prev #{h.prev_rank}
                           </span>
                         </Link>

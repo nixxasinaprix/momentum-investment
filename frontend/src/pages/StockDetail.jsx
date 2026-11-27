@@ -82,7 +82,7 @@ export default function StockDetail() {
             onClick={() => toggleWatchlist(decodedSymbol)}
             className={
               watched
-                ? "border border-brand-gold/60 bg-brand-gold/25 text-stone-900 shadow-none hover:bg-brand-gold/35 dark:border-brand-gold/50 dark:bg-brand-gold/15 dark:text-brand-gold dark:hover:bg-brand-gold/25"
+                ? "border border-brand-gold bg-brand-gold text-[#3B1F4E] shadow-md shadow-brand-gold/30 hover:brightness-105 dark:border-brand-gold dark:bg-brand-gold dark:text-[#3B1F4E]"
                 : ""
             }
           >
@@ -113,11 +113,15 @@ export default function StockDetail() {
         <PageContainer>
           <DisclaimerBanner />
 
-          {/* Trend verdict banner */}
-          <GlassCard className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div className="space-y-2">
+          {/* Trend verdict hero card with soft corner blob */}
+          <GlassCard className="relative flex flex-col justify-between gap-4 overflow-hidden md:flex-row md:items-center">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-brand-coral/20 blur-xl"
+            />
+            <div className="relative z-10 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="font-display text-3xl font-bold tabular-nums text-stone-900 dark:text-stone-100">
+                <span className="font-display text-3xl font-extrabold tabular-nums text-[var(--text-primary)]">
                   {formatINR(summary.last_price)}
                 </span>
                 <TrendBadge trend={summary.trend} size="md" />
@@ -127,27 +131,27 @@ export default function StockDetail() {
                   </Badge>
                 )}
               </div>
-              <p className="max-w-3xl text-sm text-stone-700 dark:text-stone-300">
+              <p className="max-w-3xl text-sm text-[var(--text-secondary)]">
                 {summary.trend_explanation}
               </p>
             </div>
 
-            <div className="flex shrink-0 flex-wrap gap-3 text-xs">
+            <div className="relative z-10 flex shrink-0 flex-wrap gap-3 text-xs">
               <Card variant="well" padding="px-3.5 py-2">
-                <div className="text-stone-500 dark:text-stone-400">50 DMA</div>
-                <div className="mt-0.5 font-semibold tabular-nums text-amber-700 dark:text-brand-gold">
+                <div className="text-[var(--text-muted)]">50 DMA</div>
+                <div className="mt-0.5 font-bold tabular-nums text-amber-700 dark:text-brand-gold">
                   {formatINR(summary.sma_50)}
                 </div>
               </Card>
               <Card variant="well" padding="px-3.5 py-2">
-                <div className="text-stone-500 dark:text-stone-400">200 DMA</div>
-                <div className="mt-0.5 font-semibold tabular-nums text-brand-plum dark:text-brand-mauve">
+                <div className="text-[var(--text-muted)]">200 DMA</div>
+                <div className="mt-0.5 font-bold tabular-nums text-brand-plum dark:text-brand-mauve">
                   {formatINR(summary.sma_200)}
                 </div>
               </Card>
               <Card variant="well" padding="px-3.5 py-2">
-                <div className="text-stone-500 dark:text-stone-400">RSI(14)</div>
-                <div className="mt-0.5 font-semibold tabular-nums text-stone-900 dark:text-stone-100">
+                <div className="text-[var(--text-muted)]">RSI(14)</div>
+                <div className="mt-0.5 font-bold tabular-nums text-[var(--text-primary)]">
                   {summary.rsi_14 !== null ? summary.rsi_14.toFixed(1) : "—"}
                 </div>
               </Card>
@@ -201,10 +205,10 @@ export default function StockDetail() {
           <GlassCard as="section">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Adjusted Price &amp; Moving Averages
                 </h2>
-                <p className="text-xs text-stone-600 dark:text-stone-400">
+                <p className="text-xs text-[var(--text-muted)]">
                   Corporate-action adjusted close with toggleable 20/50/200-day SMAs
                 </p>
               </div>
@@ -213,10 +217,10 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma20((v) => !v)}
-                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-bold transition ${
                     showSma20
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300"
-                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200"
+                      : "lab-well text-[var(--text-muted)]"
                   }`}
                 >
                   SMA 20
@@ -224,10 +228,10 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma50((v) => !v)}
-                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-bold transition ${
                     showSma50
-                      ? "border-brand-gold/70 bg-brand-gold/25 text-stone-800 dark:border-brand-gold/45 dark:bg-brand-gold/15 dark:text-brand-gold"
-                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
+                      ? "border-brand-gold/80 bg-brand-gold/30 text-[#3B1F4E] dark:border-brand-gold/45 dark:bg-brand-gold/20 dark:text-brand-gold"
+                      : "lab-well text-[var(--text-muted)]"
                   }`}
                 >
                   SMA 50
@@ -235,10 +239,10 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma200((v) => !v)}
-                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-bold transition ${
                     showSma200
-                      ? "border-brand-mauve/50 bg-brand-mauve/15 text-brand-plum dark:border-brand-mauve/45 dark:bg-brand-mauve/20 dark:text-brand-mauve"
-                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
+                      ? "border-brand-mauve/55 bg-brand-mauve/20 text-[#3B1F4E] dark:border-brand-mauve/45 dark:bg-brand-mauve/25 dark:text-brand-mauve"
+                      : "lab-well text-[var(--text-muted)]"
                   }`}
                 >
                   SMA 200
@@ -339,10 +343,10 @@ export default function StockDetail() {
           {/* Volume + RSI grid */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <GlassCard as="section">
-              <h3 className="font-display text-sm font-bold text-stone-900 dark:text-stone-100">
+              <h3 className="font-display text-sm font-bold text-[var(--text-primary)]">
                 Daily Volume
               </h3>
-              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+              <p className="mb-3 text-xs text-[var(--text-muted)]">
                 Traded shares across selected range
               </p>
               <div className="h-[210px] w-full">
@@ -381,10 +385,10 @@ export default function StockDetail() {
             </GlassCard>
 
             <GlassCard as="section">
-              <h3 className="font-display text-sm font-bold text-stone-900 dark:text-stone-100">
+              <h3 className="font-display text-sm font-bold text-[var(--text-primary)]">
                 RSI(14) Oscillator
               </h3>
-              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+              <p className="mb-3 text-xs text-[var(--text-muted)]">
                 Overbought (&gt;70) and oversold (&lt;30) thresholds marked
               </p>
               <div className="h-[210px] w-full">
@@ -432,10 +436,10 @@ export default function StockDetail() {
           {/* Rank history + Step-by-step score breakdown */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <GlassCard as="section">
-              <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+              <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                 Momentum Rank History (Monthly)
               </h3>
-              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+              <p className="mb-3 text-xs text-[var(--text-muted)]">
                 Cross-sectional Nifty 200 rank at each month-end (#1 = strongest at top)
               </p>
               {!data.rank_history?.length ? (
@@ -493,7 +497,7 @@ export default function StockDetail() {
             <GlassCard as="section">
               <div className="mb-3 flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
-                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                   How This Score Was Calculated
                 </h3>
                 <Tooltip content="Uses only adjusted closing prices up to the selected as-of date (zero look-ahead)." />
@@ -507,7 +511,7 @@ export default function StockDetail() {
               ) : (
                 <div className="space-y-4 text-sm">
                   <Card variant="well" padding="p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       Step 1 · Momentum Return ({breakdown.lookback_days}d − {breakdown.skip_days}d)
                     </div>
                     <MathFormula
@@ -518,15 +522,15 @@ export default function StockDetail() {
                         2
                       )}} - 1 = ${(breakdown.momentum_12_1 * 100).toFixed(2)}\\%`}
                     />
-                    <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-stone-600 dark:text-stone-400">
+                    <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
                       <span>
-                        <strong className="text-stone-900 dark:text-stone-200">
+                        <strong className="text-[var(--text-primary)]">
                           t−{breakdown.lookback_days}
                         </strong>{" "}
                         ({breakdown.date_252_ago}): {formatINR(breakdown.price_252_ago)}
                       </span>
                       <span>
-                        <strong className="text-stone-900 dark:text-stone-200">
+                        <strong className="text-[var(--text-primary)]">
                           t−{breakdown.skip_days}
                         </strong>{" "}
                         ({breakdown.date_21_ago}): {formatINR(breakdown.price_21_ago)}
@@ -535,7 +539,7 @@ export default function StockDetail() {
                   </Card>
 
                   <Card variant="well" padding="p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                       Step 2 · Annualised Daily Volatility
                     </div>
                     <MathFormula
@@ -547,7 +551,7 @@ export default function StockDetail() {
                   </Card>
 
                   <Card variant="accent" padding="p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-brand-plum dark:text-brand-coral">
+                    <div className="text-xs font-bold uppercase tracking-wider text-brand-plum dark:text-brand-coral">
                       Step 3 · Volatility-Adjusted Score &amp; Rank
                     </div>
                     <MathFormula
@@ -558,13 +562,13 @@ export default function StockDetail() {
                         4
                       )}} = ${breakdown.score.toFixed(4)}`}
                     />
-                    <div className="mt-1 text-xs text-stone-700 dark:text-stone-300">
+                    <div className="mt-1 text-xs text-[var(--text-secondary)]">
                       Ranks{" "}
-                      <strong className="text-stone-900 dark:text-stone-100">
+                      <strong className="text-[var(--text-primary)]">
                         #{breakdown.rank}
                       </strong>{" "}
                       out of{" "}
-                      <strong className="text-stone-900 dark:text-stone-100">
+                      <strong className="text-[var(--text-primary)]">
                         {breakdown.universe_size}
                       </strong>{" "}
                       eligible Nifty 200 stocks as of {breakdown.as_of}.

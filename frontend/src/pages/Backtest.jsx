@@ -37,7 +37,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 function heatCellClass(ret) {
   if (ret === null || ret === undefined) {
-    return "border-stone-200/70 bg-stone-100/70 text-stone-400 dark:border-stone-800 dark:bg-stone-800/35 dark:text-stone-600";
+    return "border-[var(--border-table)] bg-brand-plum/[0.04] text-[var(--text-muted)] dark:bg-brand-plumDark/15";
   }
   const pct = ret * 100;
   if (pct >= 8) {
@@ -224,7 +224,7 @@ export default function Backtest() {
               </div>
             )}
             {bought.length === 0 && sold.length === 0 && (
-              <span className="text-stone-500">No constituent changes (re-weighted)</span>
+              <span className="text-[var(--text-muted)]">No constituent changes (re-weighted)</span>
             )}
           </div>
         );
@@ -317,8 +317,8 @@ export default function Backtest() {
           </div>
 
           {savedRuns.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-stone-200/80 pt-3 text-xs dark:border-stone-800">
-              <span className="inline-flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border-table)] pt-3 text-xs">
+              <span className="inline-flex items-center gap-1.5 text-[var(--text-muted)]">
                 <History className="h-3.5 w-3.5" />
                 Saved Runs:
               </span>
@@ -329,8 +329,8 @@ export default function Backtest() {
                   onClick={() => loadRun(r.id)}
                   className={`rounded-full border px-3 py-1 font-medium transition ${
                     result?.id === r.id
-                      ? "border-brand-plum/40 bg-brand-plum/10 text-brand-plum dark:border-brand-coral/50 dark:bg-brand-coral/15 dark:text-brand-coral"
-                      : "border-stone-200 bg-white/75 text-stone-700 hover:border-brand-plum/40 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-300 dark:hover:border-brand-coral/50"
+                      ? "border-brand-plum/45 bg-brand-plum/15 text-brand-plum dark:border-brand-coral/50 dark:bg-brand-coral/15 dark:text-brand-coral"
+                      : "lab-well text-[var(--text-secondary)] hover:border-brand-plum/40 dark:hover:border-brand-coral/50"
                   }`}
                 >
                   #{r.id} · Top {r.params?.top_n} · {r.params?.cost_bps}bps · CAGR{" "}
@@ -397,10 +397,10 @@ export default function Backtest() {
 
             {/* Equity curve */}
             <GlassCard as="section">
-              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+              <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                 Equity Curve ({result.start_date} to {result.end_date})
               </h2>
-              <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
+              <p className="mb-4 text-xs text-[var(--text-muted)]">
                 Rebased to {formatINR(result.params?.initial_capital || 1000000, 0)} starting capital
               </p>
               <div className="h-[340px] w-full">
@@ -464,10 +464,10 @@ export default function Backtest() {
             {/* Drawdown + Yearly returns */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
               <GlassCard as="section">
-                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Strategy Drawdown
                 </h3>
-                <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+                <p className="mb-3 text-xs text-[var(--text-muted)]">
                   Peak {strat?.max_drawdown_peak_date} → Trough {strat?.max_drawdown_trough_date}
                 </p>
                 <div className="h-[240px] w-full">
@@ -516,30 +516,30 @@ export default function Backtest() {
               </GlassCard>
 
               <GlassCard as="section">
-                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Yearly Returns Table
                 </h3>
-                <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+                <p className="mb-3 text-xs text-[var(--text-muted)]">
                   Calendar-year strategy vs {result.benchmark?.symbol}
                 </p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-xl border border-[var(--border-soft)]">
                   <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase text-stone-600 dark:border-stone-800 dark:text-stone-400">
-                        <th className="py-2 text-left">Year</th>
-                        <th className="py-2 text-right">Strategy</th>
-                        <th className="py-2 text-right">Benchmark</th>
-                        <th className="py-2 text-right">Excess</th>
+                    <thead className="lab-table-head">
+                      <tr className="border-b border-[var(--border-table)] text-xs font-semibold uppercase text-[var(--text-muted)]">
+                        <th className="px-3 py-2.5 text-left">Year</th>
+                        <th className="px-3 py-2.5 text-right">Strategy</th>
+                        <th className="px-3 py-2.5 text-right">Benchmark</th>
+                        <th className="px-3 py-2.5 text-right">Excess</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-200/70 tabular-nums dark:divide-stone-800/80">
+                    <tbody className="lab-table-body divide-y divide-[var(--border-table)] tabular-nums">
                       {(result.yearly_returns || []).map((y) => (
-                        <tr key={y.year}>
-                          <td className="py-2.5 font-semibold text-stone-900 dark:text-stone-100">
+                        <tr key={y.year} className="transition-colors hover:bg-[var(--surface-table-hover)]">
+                          <td className="px-3 py-2.5 font-semibold text-[var(--text-primary)]">
                             {y.year}
                           </td>
                           <td
-                            className={`py-2.5 text-right font-semibold ${
+                            className={`px-3 py-2.5 text-right font-semibold ${
                               y.strategy_return >= 0
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-600 dark:text-red-400"
@@ -547,11 +547,11 @@ export default function Backtest() {
                           >
                             {formatPct(y.strategy_return, 2)}
                           </td>
-                          <td className="py-2.5 text-right text-stone-700 dark:text-stone-300">
+                          <td className="px-3 py-2.5 text-right text-[var(--text-secondary)]">
                             {formatPct(y.benchmark_return, 2)}
                           </td>
                           <td
-                            className={`py-2.5 text-right font-semibold ${
+                            className={`px-3 py-2.5 text-right font-semibold ${
                               y.excess_return >= 0
                                 ? "text-emerald-600 dark:text-emerald-300"
                                 : "text-red-600 dark:text-red-300"
@@ -570,16 +570,16 @@ export default function Backtest() {
             {/* Monthly returns heatmap */}
             {monthlyHeatmapGrid.length > 0 && (
               <GlassCard as="section">
-                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                   Monthly Returns Heatmap (Strategy)
                 </h3>
-                <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
+                <p className="mb-4 text-xs text-[var(--text-muted)]">
                   Calendar-month percentage returns across the backtest horizon
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[740px] border-separate border-spacing-1 text-center text-xs">
                     <thead>
-                      <tr className="text-stone-600 dark:text-stone-400">
+                      <tr className="text-[var(--text-muted)]">
                         <th className="px-2 py-1 text-left">Year</th>
                         {MONTHS.map((m) => (
                           <th key={m} className="px-1.5 py-1 font-medium">
@@ -591,7 +591,7 @@ export default function Backtest() {
                     <tbody>
                       {monthlyHeatmapGrid.map((yr) => (
                         <tr key={yr.year}>
-                          <td className="px-2 py-1.5 text-left font-bold text-stone-900 dark:text-stone-100">
+                          <td className="px-2 py-1.5 text-left font-bold text-[var(--text-primary)]">
                             {yr.year}
                           </td>
                           {MONTHS.map((_, idx) => {
@@ -619,7 +619,7 @@ export default function Backtest() {
 
             {/* Rebalances log with Bought / Sold */}
             <section className="space-y-3">
-              <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+              <h3 className="font-display text-base font-bold text-[var(--text-primary)]">
                 Rebalance History ({result.rebalances?.length || 0} monthly rebalances)
               </h3>
               <DataTable
@@ -633,12 +633,16 @@ export default function Backtest() {
             </section>
 
             {/* Clear Limitations notice */}
-            <section className="rounded-2xl border border-brand-gold/65 bg-brand-gold/20 p-5 text-xs leading-relaxed text-stone-800 shadow-sm backdrop-blur-md dark:border-brand-gold/30 dark:bg-brand-gold/10 dark:text-stone-200">
-              <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-stone-900 dark:text-brand-gold">
-                <ShieldAlert className="h-4 w-4 text-brand-plum dark:text-brand-gold" />
+            <GlassCard as="section" padding="p-5" className="relative overflow-hidden text-xs leading-relaxed text-[var(--text-secondary)]">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-brand-gold via-brand-coral to-brand-plum"
+              />
+              <div className="mb-2 flex items-center gap-2 pl-2 font-display text-sm font-bold text-brand-plum dark:text-brand-gold">
+                <ShieldAlert className="h-4 w-4 text-brand-coral dark:text-brand-gold" />
                 Simulation Limitations &amp; Disclaimer
               </div>
-              <ul className="list-disc space-y-1 pl-5 text-stone-700 dark:text-stone-300">
+              <ul className="list-disc space-y-1 pl-7 text-[var(--text-secondary)]">
                 <li>
                   <strong>Survivorship bias</strong>: The universe uses today&apos;s Nifty 200 constituents rather than historical point-in-time index membership.
                 </li>
@@ -652,7 +656,7 @@ export default function Backtest() {
                   <strong>Educational &amp; research only</strong>: Historical backtest output is not investment advice or a promise of future performance.
                 </li>
               </ul>
-            </section>
+            </GlassCard>
           </div>
         )}
       </PageContainer>

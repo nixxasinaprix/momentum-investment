@@ -237,7 +237,7 @@ export default function Compare() {
               {selected.map((sym, idx) => (
                 <span
                   key={sym}
-                  className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-surface-cream/90 px-3 py-1.5 text-xs font-semibold text-stone-900 dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-100"
+                  className="lab-well inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)]"
                 >
                   <span
                     className="h-2 w-2 rounded-full"
@@ -247,7 +247,7 @@ export default function Compare() {
                   <button
                     type="button"
                     onClick={() => removeSymbol(sym)}
-                    className="text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-brand-coral"
+                    className="text-[var(--text-muted)] transition hover:text-brand-plum dark:hover:text-brand-coral"
                     aria-label={`Remove ${sym}`}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -297,10 +297,10 @@ export default function Compare() {
             <>
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <GlassCard as="section">
-                  <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                  <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                     Normalized Performance (Base = 100)
                   </h2>
-                  <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
+                  <p className="mb-4 text-xs text-[var(--text-muted)]">
                     Cumulative return over the {range.toUpperCase()} window
                   </p>
                   <div className="h-[300px] w-full">
@@ -351,10 +351,10 @@ export default function Compare() {
                 </GlassCard>
 
                 <GlassCard as="section">
-                  <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                  <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                     Relative Strength vs Nifty 200 (Base = 100)
                   </h2>
-                  <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
+                  <p className="mb-4 text-xs text-[var(--text-muted)]">
                     Rising line indicates outperformance relative to the ^CNX200 benchmark
                   </p>
                   <div className="h-[300px] w-full">
@@ -408,14 +408,14 @@ export default function Compare() {
               <GlassCard as="section" padding="p-0" className="overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-                    <thead className="bg-stone-100/80 dark:bg-stone-800/50">
-                      <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:text-stone-400">
+                    <thead className="lab-table-head">
+                      <tr className="border-b border-[var(--border-table)] text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                         <th className="px-4 py-3.5">Metric (Best Highlighted)</th>
                         {selected.map((sym, idx) => (
                           <th key={sym} className="px-4 py-3.5 text-right">
                             <Link
                               to={`/stock/${encodeURIComponent(sym)}`}
-                              className="inline-flex items-center gap-1.5 text-stone-900 hover:text-brand-plum dark:text-stone-100 dark:hover:text-brand-coral"
+                              className="inline-flex items-center gap-1.5 text-[var(--text-primary)] hover:text-brand-plum dark:hover:text-brand-coral"
                             >
                               <span
                                 className="h-2 w-2 rounded-full"
@@ -427,7 +427,7 @@ export default function Compare() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/80">
+                    <tbody className="lab-table-body divide-y divide-[var(--border-table)]">
                       {metricRows.map((row) => {
                         const vals = selected
                           .map((sym) => ({
@@ -452,9 +452,9 @@ export default function Compare() {
                         return (
                           <tr
                             key={row.label}
-                            className="transition-colors hover:bg-stone-100/60 dark:hover:bg-stone-800/40"
+                            className="transition-colors hover:bg-[var(--surface-table-hover)]"
                           >
-                            <td className="px-4 py-3 font-medium text-stone-600 dark:text-stone-400">
+                            <td className="px-4 py-3 font-medium text-[var(--text-muted)]">
                               {row.label}
                             </td>
                             {selected.map((sym) => {
@@ -469,7 +469,7 @@ export default function Compare() {
                               return (
                                 <td
                                   key={sym}
-                                  className="px-4 py-3 text-right tabular-nums text-stone-900 dark:text-stone-100"
+                                  className="px-4 py-3 text-right tabular-nums text-[var(--text-primary)]"
                                 >
                                   {item ? (
                                     <span

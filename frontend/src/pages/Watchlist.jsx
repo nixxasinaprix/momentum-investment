@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import Sparkline from "../components/Sparkline";
 import {
+  Badge,
   Button,
   DataTable,
   DisclaimerBanner,
@@ -48,11 +49,14 @@ export default function Watchlist() {
       label: "Rank",
       sortable: true,
       defaultDir: "asc",
-      render: (r) => (
-        <span className="font-semibold tabular-nums text-stone-900 dark:text-stone-100">
-          {r.rank != null ? `#${r.rank}` : "—"}
-        </span>
-      ),
+      render: (r) =>
+        r.rank != null ? (
+          <Badge variant="plum" size="xs" className="tabular-nums">
+            #{r.rank}
+          </Badge>
+        ) : (
+          <span className="text-[var(--text-muted)]">—</span>
+        ),
     },
     {
       key: "rank_change",
@@ -61,7 +65,7 @@ export default function Watchlist() {
       align: "right",
       render: (r) => {
         if (r.rank_change === null || r.rank_change === undefined) {
-          return <span className="text-stone-400 dark:text-stone-500">—</span>;
+          return <span className="text-[var(--text-muted)]">—</span>;
         }
         if (r.rank_change > 0) {
           return (
@@ -78,7 +82,7 @@ export default function Watchlist() {
             </span>
           );
         }
-        return <span className="text-stone-500 dark:text-stone-400">0</span>;
+        return <span className="text-[var(--text-muted)]">0</span>;
       },
     },
     {
@@ -88,10 +92,10 @@ export default function Watchlist() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-stone-900 dark:text-stone-100">
+          <div className="font-semibold text-[var(--text-primary)]">
             {shortSymbol(r.symbol)}
           </div>
-          <div className="max-w-[200px] truncate text-xs text-stone-500 dark:text-stone-400">
+          <div className="max-w-[200px] truncate text-xs text-[var(--text-muted)]">
             {r.name}
           </div>
         </div>
@@ -127,11 +131,14 @@ export default function Watchlist() {
       label: "Score",
       sortable: true,
       align: "right",
-      render: (r) => (
-        <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
-          {r.score != null ? r.score.toFixed(2) : "—"}
-        </span>
-      ),
+      render: (r) =>
+        r.score != null ? (
+          <Badge variant="coral" size="xs" className="font-display tabular-nums">
+            {r.score.toFixed(2)}
+          </Badge>
+        ) : (
+          <span className="text-[var(--text-muted)]">—</span>
+        ),
     },
     {
       key: "trend",
@@ -157,7 +164,7 @@ export default function Watchlist() {
             e.stopPropagation();
             toggleWatchlist(r.symbol);
           }}
-          className="rounded-lg p-1.5 text-stone-400 transition hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400"
+          className="rounded-lg p-1.5 text-[var(--text-muted)] transition hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400"
           aria-label={`Remove ${r.symbol} from watchlist`}
         >
           <Trash2 className="h-4 w-4" />

@@ -4,6 +4,7 @@ import { Columns, Download, Search, SlidersHorizontal, Star } from "lucide-react
 import AppLayout from "../components/AppLayout";
 import Sparkline from "../components/Sparkline";
 import {
+  Badge,
   Button,
   Card,
   DataTable,
@@ -43,13 +44,13 @@ const TREND_OPTIONS = [
 
 function ReturnCell({ value }) {
   if (value === null || value === undefined) {
-    return <span className="text-stone-400 dark:text-stone-500">—</span>;
+    return <span className="text-[var(--text-muted)]">—</span>;
   }
   const cls =
     value >= 0
-      ? "text-emerald-600 dark:text-emerald-400"
-      : "text-red-600 dark:text-red-400";
-  return <span className={`font-semibold ${cls}`}>{formatPct(value, 1)}</span>;
+      ? "text-emerald-700 dark:text-emerald-300"
+      : "text-red-700 dark:text-red-300";
+  return <span className={`font-bold ${cls}`}>{formatPct(value, 1)}</span>;
 }
 
 export default function Screener() {
@@ -59,7 +60,7 @@ export default function Screener() {
   const { data, loading, error, refetch } = useCachedApi("/api/screener");
   const { isWatched, toggleWatchlist } = useWatchlist();
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
   const [sectorFilter, setSectorFilter] = useState(
     () => searchParams.get("sector") || "All"
   );
@@ -144,7 +145,7 @@ export default function Screener() {
               className={`rounded-lg p-1 transition ${
                 watched
                   ? "text-amber-500 hover:bg-amber-500/15 dark:text-brand-gold"
-                  : "text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
+                  : "text-brand-plum/35 hover:bg-brand-coral/15 hover:text-brand-plum dark:text-brand-coral/35 dark:hover:text-brand-coral"
               }`}
             >
               <Star className="h-4 w-4" fill={watched ? "currentColor" : "none"} />
@@ -157,11 +158,14 @@ export default function Screener() {
         label: "Rank",
         sortable: true,
         defaultDir: "asc",
-        render: (row) => (
-          <span className="font-semibold tabular-nums text-stone-700 dark:text-stone-300">
-            {row.rank !== null ? `#${row.rank}` : "—"}
-          </span>
-        ),
+        render: (row) =>
+          row.rank !== null ? (
+            <Badge variant="plum" size="xs" className="tabular-nums">
+              #{row.rank}
+            </Badge>
+          ) : (
+            <span className="text-[var(--text-muted)]">—</span>
+          ),
       },
       {
         key: "symbol",
@@ -170,10 +174,10 @@ export default function Screener() {
         defaultDir: "asc",
         render: (row) => (
           <div className="min-w-[140px]">
-            <div className="font-semibold text-stone-900 dark:text-stone-100">
+            <div className="font-bold text-[var(--text-primary)]">
               {shortSymbol(row.symbol)}
             </div>
-            <div className="max-w-[200px] truncate text-xs text-stone-500 dark:text-stone-400">
+            <div className="max-w-[200px] truncate text-xs text-[var(--text-muted)]">
               {row.name}
             </div>
           </div>
@@ -185,7 +189,7 @@ export default function Screener() {
         sortable: true,
         defaultDir: "asc",
         render: (row) => (
-          <span className="block max-w-[160px] truncate text-xs text-stone-600 dark:text-stone-300">
+          <span className="block max-w-[160px] truncate text-xs font-medium text-[var(--text-secondary)]">
             {row.sector}
           </span>
         ),
@@ -196,7 +200,7 @@ export default function Screener() {
         sortable: true,
         align: "right",
         render: (row) => (
-          <span className="font-semibold text-stone-900 dark:text-stone-100">
+          <span className="font-bold text-[var(--text-primary)]">
             {formatINR(row.last_price)}
           </span>
         ),
@@ -206,11 +210,14 @@ export default function Screener() {
         label: "Score",
         sortable: true,
         align: "right",
-        render: (row) => (
-          <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
-            {row.score !== null && row.score !== undefined ? row.score.toFixed(2) : "—"}
-          </span>
-        ),
+        render: (row) =>
+          row.score !== null && row.score !== undefined ? (
+            <Badge variant="coral" size="xs" className="font-display tabular-nums">
+              {row.score.toFixed(2)}
+            </Badge>
+          ) : (
+            "—"
+          ),
       },
       {
         key: "trend",
@@ -227,12 +234,15 @@ export default function Screener() {
         label: "Mkt Cap",
         sortable: true,
         align: "right",
-        render: (row) =>
-          row.market_cap_cr != null
-            ? row.market_cap_cr >= 100000
-              ? `₹${(row.market_cap_cr / 100000).toFixed(2)}L Cr`
-              : `₹${Math.round(row.market_cap_cr).toLocaleString("en-IN")} Cr`
-            : "Unknown",
+        render: (row) => (
+          <span className="whitespace-nowrap">
+            {row.market_cap_cr != null
+              ? row.market_cap_cr >= 100000
+                ? `₹${(row.market_cap_cr / 100000).toFixed(2)}L Cr`
+                : `₹${Math.round(row.market_cap_cr).toLocaleString("en-IN")} Cr`
+              : "Unknown"}
+          </span>
+        ),
       },
       ret_1m: {
         key: "ret_1m",
@@ -292,10 +302,10 @@ export default function Screener() {
             <span
               className={
                 row.rsi_14 >= 70
-                  ? "font-semibold text-amber-700 dark:text-brand-gold"
+                  ? "font-bold text-amber-700 dark:text-brand-gold"
                   : row.rsi_14 <= 30
-                  ? "font-semibold text-emerald-600 dark:text-emerald-300"
-                  : "text-stone-700 dark:text-stone-200"
+                  ? "font-bold text-emerald-700 dark:text-emerald-300"
+                  : "text-[var(--text-secondary)]"
               }
             >
               {row.rsi_14.toFixed(1)}
@@ -362,36 +372,36 @@ export default function Screener() {
         <PageContainer className="space-y-4">
           <GlassCard
             padding="px-4 py-2.5"
-            className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600 dark:text-stone-300"
+            className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-secondary)]"
           >
             <span>
               Active Strategy Settings:{" "}
-              <strong className="text-stone-900 dark:text-stone-100">
+              <strong className="text-[var(--text-primary)]">
                 {pipelineParams.method}
               </strong>{" "}
               · Lookback{" "}
-              <strong className="text-stone-900 dark:text-stone-100">
+              <strong className="text-[var(--text-primary)]">
                 {pipelineParams.lookback_days}d
               </strong>{" "}
               / Skip{" "}
-              <strong className="text-stone-900 dark:text-stone-100">
+              <strong className="text-[var(--text-primary)]">
                 {pipelineParams.skip_days}d
               </strong>{" "}
               · Top{" "}
-              <strong className="text-stone-900 dark:text-stone-100">
+              <strong className="text-[var(--text-primary)]">
                 {pipelineParams.top_n}
               </strong>
             </span>
             <div className="flex items-center gap-3">
               <Link
                 to="/picks"
-                className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
+                className="font-bold text-brand-plum hover:underline dark:text-brand-coral"
               >
                 View Today&apos;s Picks
               </Link>
               <Link
                 to="/strategy"
-                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-brand-coral"
+                className="font-medium text-[var(--text-muted)] hover:text-brand-plum dark:hover:text-brand-coral"
               >
                 Edit in Strategy Builder
               </Link>
@@ -447,7 +457,7 @@ export default function Screener() {
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-brand-plum dark:text-brand-coral" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex justify-between text-[11px] text-stone-600 dark:text-stone-400">
+                  <div className="flex justify-between text-[11px] text-[var(--text-muted)]">
                     <span>Min Score</span>
                     <span className="font-bold tabular-nums text-brand-plum dark:text-brand-coral">
                       {minScore <= scoreBounds.min ? "Any" : minScore.toFixed(1)}
@@ -466,11 +476,11 @@ export default function Screener() {
               </Card>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200/80 pt-3 text-xs text-stone-600 dark:border-stone-800 dark:text-stone-400">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-table)] pt-3 text-xs text-[var(--text-muted)]">
               <div className="flex items-center gap-3">
                 <span>
                   Showing{" "}
-                  <strong className="text-stone-900 dark:text-stone-100">
+                  <strong className="text-[var(--text-primary)]">
                     {filteredRows.length}
                   </strong>{" "}
                   of {stocks.length} stocks
@@ -482,7 +492,7 @@ export default function Screener() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
+                    className="font-bold text-brand-plum hover:underline dark:text-brand-coral"
                   >
                     Reset filters
                   </button>
@@ -499,11 +509,11 @@ export default function Screener() {
                   Columns
                 </Button>
                 {showColMenu && (
-                  <div className="absolute right-0 z-20 mt-2 w-52 rounded-2xl border border-stone-200 bg-white/95 p-2 shadow-2xl backdrop-blur-lg dark:border-stone-700 dark:bg-stone-900/95">
+                  <div className="lab-card absolute right-0 z-20 mt-2 w-52 rounded-2xl p-2">
                     {OPTIONAL_COLUMNS.map((col) => (
                       <label
                         key={col.key}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800"
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:bg-brand-coral/15 hover:text-[var(--text-primary)]"
                       >
                         <input
                           type="checkbox"

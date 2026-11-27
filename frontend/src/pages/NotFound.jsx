@@ -8,9 +8,11 @@ export default function NotFound() {
   }, []);
 
   return (
-    <main className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 text-center text-stone-900 antialiased transition-colors duration-700 dark:text-stone-100">
+    <main className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 text-center text-[var(--text-primary)] antialiased transition-colors duration-700">
       <div className="fixed right-4 top-4 z-20">
-        <ThemeToggle />
+        <div className="lab-card rounded-full bg-gradient-to-tr from-brand-coral via-brand-gold to-brand-plum p-[1.5px] shadow-md">
+          <ThemeToggle />
+        </div>
       </div>
 
       <GlassCard
@@ -37,7 +39,7 @@ export default function NotFound() {
             This research page doesn&apos;t exist
           </span>
         </h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-stone-600 dark:text-stone-400">
+        <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--text-muted)]">
           The URL you requested is not part of the Momentum Investment workspace.
         </p>
 

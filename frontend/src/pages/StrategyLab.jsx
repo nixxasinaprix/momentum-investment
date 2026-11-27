@@ -158,7 +158,7 @@ export default function StrategyLab() {
         <GlassCard as="section">
           <div className="mb-4 flex items-center gap-2">
             <Filter className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
-            <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+            <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
               1. Quality &amp; Liquidity Filters
             </h2>
           </div>
@@ -241,7 +241,7 @@ export default function StrategyLab() {
 
             <Card variant="well" padding="p-4" className="flex flex-col justify-between">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                <span className="text-xs font-semibold text-[var(--text-primary)]">
                   Unknown Market Cap
                 </span>
                 <SegmentedControl
@@ -256,7 +256,7 @@ export default function StrategyLab() {
                   ]}
                 />
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
                 Controls whether stocks missing a cached yfinance market cap are excluded or kept.
               </p>
             </Card>
@@ -265,14 +265,14 @@ export default function StrategyLab() {
           {availableSectors.length > 0 && (
             <Card variant="well" padding="p-4" className="mt-4">
               <div className="mb-2 flex items-center justify-between text-xs">
-                <span className="font-semibold text-stone-900 dark:text-stone-100">
+                <span className="font-semibold text-[var(--text-primary)]">
                   Sector Exclusions ({draft.excluded_sectors.length} excluded)
                 </span>
                 {draft.excluded_sectors.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setDraft((p) => ({ ...p, excluded_sectors: [] }))}
-                    className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
+                    className="font-bold text-brand-plum hover:underline dark:text-brand-coral"
                   >
                     Clear exclusions
                   </button>
@@ -286,10 +286,10 @@ export default function StrategyLab() {
                       key={sec}
                       type="button"
                       onClick={() => toggleSectorExclusion(sec)}
-                      className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
+                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
                         excluded
-                          ? "border-red-300 bg-red-50 text-red-700 line-through dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300"
-                          : "border-stone-200 bg-white/80 text-stone-700 hover:border-brand-plum/50 dark:border-stone-700 dark:bg-stone-800/70 dark:text-stone-300 dark:hover:border-brand-coral/50"
+                          ? "border-red-300 bg-red-50 text-red-800 line-through dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-200"
+                          : "lab-input hover:border-brand-plum dark:hover:border-brand-coral"
                       }`}
                     >
                       {sec}
@@ -306,14 +306,14 @@ export default function StrategyLab() {
           <GlassCard as="section" className="space-y-4 xl:col-span-7">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
-              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+              <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                 2. Momentum &amp; Portfolio Settings
               </h2>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Card variant="well" padding="p-4" className="sm:col-span-2">
-                <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                <span className="text-xs font-semibold text-[var(--text-primary)]">
                   Scoring Method
                 </span>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -326,17 +326,17 @@ export default function StrategyLab() {
                       key={m.id}
                       type="button"
                       onClick={() => setDraft((p) => ({ ...p, method: m.id }))}
-                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${
                         draft.method === m.id
-                          ? "border-brand-plum/40 bg-brand-plum text-stone-50 shadow-sm dark:border-brand-coral/50 dark:bg-brand-plumDark"
-                          : "border-stone-200 bg-white/80 text-stone-700 hover:border-brand-plum/40 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800/70 dark:text-stone-300 dark:hover:border-brand-coral dark:hover:text-stone-100"
+                          ? "border-brand-plum/40 bg-brand-plum text-surface-cream shadow-md shadow-brand-plum/25 dark:border-brand-coral/50 dark:bg-brand-plumDark"
+                          : "lab-input hover:border-brand-plum dark:hover:border-brand-coral"
                       }`}
                     >
                       {m.label}
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[11px] text-stone-600 dark:text-stone-400">
+                <p className="mt-2 text-[11px] text-[var(--text-muted)]">
                   Vol-adjusted favors steady compounders; Z-score blend combines 6-month and 12-month cross-sectional ranks.
                 </p>
               </Card>
@@ -393,17 +393,17 @@ export default function StrategyLab() {
             className="flex flex-col justify-between gap-4 xl:col-span-5"
           >
             <div className="space-y-3">
-              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+              <h2 className="font-display text-base font-bold text-[var(--text-primary)]">
                 Live Pipeline Equations
               </h2>
               <Card variant="well" padding="p-3">
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Eligibility Gate
                 </div>
                 <MathFormula display math={filterFormula} />
               </Card>
               <Card variant="well" padding="p-3">
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Ranking Score &amp; Weight
                 </div>
                 <MathFormula display math={scoreFormula} />
@@ -413,11 +413,11 @@ export default function StrategyLab() {
             {preview?.selected?.length > 0 && (
               <Card variant="well" padding="p-3.5">
                 <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-stone-900 dark:text-stone-100">
+                  <span className="font-bold text-[var(--text-primary)]">
                     Live Top 5 Preview ({preview.as_of})
                   </span>
                   {loading && (
-                    <span className="font-medium text-brand-plum dark:text-brand-coral">
+                    <span className="font-semibold text-brand-plum dark:text-brand-coral">
                       Updating…
                     </span>
                   )}
@@ -425,13 +425,13 @@ export default function StrategyLab() {
                 <div className="space-y-1.5 text-xs">
                   {preview.selected.slice(0, 5).map((s) => (
                     <div key={s.symbol} className="flex items-center justify-between">
-                      <span className="font-medium text-stone-800 dark:text-stone-200">
+                      <span className="font-semibold text-[var(--text-secondary)]">
                         <strong className="text-brand-plum dark:text-brand-coral">
                           #{s.rank}
                         </strong>{" "}
                         {shortSymbol(s.symbol)}
                       </span>
-                      <span className="tabular-nums text-stone-600 dark:text-stone-400">
+                      <span className="tabular-nums text-[var(--text-muted)]">
                         Score {s.score != null ? s.score.toFixed(2) : "—"}
                       </span>
                     </div>
