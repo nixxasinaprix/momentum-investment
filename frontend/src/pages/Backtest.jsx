@@ -5,41 +5,64 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
-import { SkeletonCard, SkeletonChart } from "../components/Skeleton";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import StatCard from "../components/StatCard";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  ErrorState,
+  GlassCard,
+  Input,
+  PageContainer,
+  Select,
+  SkeletonCard,
+  SkeletonChart,
+  StatCard,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { usePipelineParams } from "../context/PipelineContext";
 import { api } from "../lib/api";
+import { useChartTheme } from "../lib/chartTheme";
 import { formatINR, formatPct, shortSymbol } from "../lib/format";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function heatCellClass(ret) {
-  if (ret === null || ret === undefined) return "bg-white/[0.02] text-stone-600";
+  if (ret === null || ret === undefined) {
+    return "border-stone-200/70 bg-stone-100/70 text-stone-400 dark:border-stone-800 dark:bg-stone-800/35 dark:text-stone-600";
+  }
   const pct = ret * 100;
-  if (pct >= 8) return "bg-emerald-500/35 text-emerald-200 border-emerald-400/30";
-  if (pct >= 3) return "bg-emerald-500/20 text-emerald-300 border-emerald-500/25";
-  if (pct > 0) return "bg-emerald-500/10 text-emerald-300 border-emerald-500/15";
-  if (pct <= -8) return "bg-rose-500/35 text-rose-200 border-rose-400/30";
-  if (pct <= -3) return "bg-rose-500/20 text-rose-300 border-rose-500/25";
-  return "bg-rose-500/10 text-rose-300 border-rose-500/15";
+  if (pct >= 8) {
+    return "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-400/30 dark:bg-emerald-500/35 dark:text-emerald-200";
+  }
+  if (pct >= 3) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/25 dark:bg-emerald-500/20 dark:text-emerald-300";
+  }
+  if (pct > 0) {
+    return "border-emerald-200/70 bg-emerald-50/60 text-emerald-700 dark:border-emerald-500/15 dark:bg-emerald-500/10 dark:text-emerald-300";
+  }
+  if (pct <= -8) {
+    return "border-red-300 bg-red-100 text-red-900 dark:border-red-400/30 dark:bg-red-500/35 dark:text-red-200";
+  }
+  if (pct <= -3) {
+    return "border-red-200 bg-red-50 text-red-800 dark:border-red-500/25 dark:bg-red-500/20 dark:text-red-300";
+  }
+  return "border-red-200/70 bg-red-50/60 text-red-700 dark:border-red-500/15 dark:bg-red-500/10 dark:text-red-300";
 }
 
 export default function Backtest() {
   const { token } = useAuth();
   const { params: pipelineParams } = usePipelineParams();
   const [searchParams] = useSearchParams();
+  const chart = useChartTheme();
 
   const initialForm = useMemo(
     () => ({
@@ -189,13 +212,13 @@ export default function Backtest() {
         return (
           <div className="max-w-[440px] space-y-1 text-[11px]">
             {bought.length > 0 && (
-              <div className="truncate text-emerald-300">
+              <div className="truncate text-emerald-700 dark:text-emerald-300">
                 <span className="font-bold">+ Buy ({bought.length}):</span>{" "}
                 {bought.map(shortSymbol).join(", ")}
               </div>
             )}
             {sold.length > 0 && (
-              <div className="truncate text-rose-300">
+              <div className="truncate text-red-700 dark:text-red-300">
                 <span className="font-bold">− Sell ({sold.length}):</span>{" "}
                 {sold.map(shortSymbol).join(", ")}
               </div>
@@ -214,103 +237,88 @@ export default function Backtest() {
       title="Strategy Backtester"
       subtitle="Monthly-rebalanced simulation with T+1 close execution lag vs Nifty 200 (^CNX200)"
     >
-      <div className="space-y-6">
-        <form
-          onSubmit={handleRun}
-          className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg"
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            <label className="text-xs text-stone-400">
-              Top N
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={form.top_n}
-                onChange={(e) => setForm((p) => ({ ...p, top_n: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <label className="text-xs text-stone-400">
-              Lookback
-              <input
-                type="number"
-                min={60}
-                max={504}
-                value={form.lookback_days}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, lookback_days: Number(e.target.value) }))
-                }
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <label className="text-xs text-stone-400">
-              Skip Days
-              <input
-                type="number"
-                min={0}
-                max={63}
-                value={form.skip_days}
-                onChange={(e) => setForm((p) => ({ ...p, skip_days: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <label className="text-xs text-stone-400 sm:col-span-2 lg:col-span-1">
-              Method
-              <select
-                value={form.method}
-                onChange={(e) => setForm((p) => ({ ...p, method: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-2.5 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              >
-                <option value="vol_adjusted">Vol-Adj</option>
-                <option value="raw">Raw</option>
-              </select>
-            </label>
-            <label className="text-xs text-stone-400">
-              Cost (bps)
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={form.cost_bps}
-                onChange={(e) => setForm((p) => ({ ...p, cost_bps: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <label className="text-xs text-stone-400">
-              Start (opt)
-              <input
-                type="date"
-                value={form.start}
-                onChange={(e) => setForm((p) => ({ ...p, start: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <label className="text-xs text-stone-400">
-              End (opt)
-              <input
-                type="date"
-                value={form.end}
-                onChange={(e) => setForm((p) => ({ ...p, end: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
-              />
-            </label>
-            <div className="flex items-end">
-              <button
+      <PageContainer>
+        <GlassCard as="form" onSubmit={handleRun}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-12">
+            <Input
+              label="Top N"
+              type="number"
+              min={1}
+              max={100}
+              value={form.top_n}
+              onChange={(e) => setForm((p) => ({ ...p, top_n: Number(e.target.value) }))}
+              className="lg:col-span-1"
+            />
+            <Input
+              label="Lookback"
+              type="number"
+              min={60}
+              max={504}
+              value={form.lookback_days}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, lookback_days: Number(e.target.value) }))
+              }
+              className="lg:col-span-1"
+            />
+            <Input
+              label="Skip Days"
+              type="number"
+              min={0}
+              max={63}
+              value={form.skip_days}
+              onChange={(e) => setForm((p) => ({ ...p, skip_days: Number(e.target.value) }))}
+              className="lg:col-span-1"
+            />
+            <Select
+              label="Method"
+              value={form.method}
+              onChange={(e) => setForm((p) => ({ ...p, method: e.target.value }))}
+              className="sm:col-span-2 lg:col-span-2"
+            >
+              <option value="vol_adjusted">Vol-Adj</option>
+              <option value="raw">Raw</option>
+            </Select>
+            <Input
+              label="Cost (bps)"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={form.cost_bps}
+              onChange={(e) => setForm((p) => ({ ...p, cost_bps: Number(e.target.value) }))}
+              className="lg:col-span-1"
+            />
+            <Input
+              label="Start (opt)"
+              type="date"
+              value={form.start}
+              onChange={(e) => setForm((p) => ({ ...p, start: e.target.value }))}
+              className="lg:col-span-2"
+            />
+            <Input
+              label="End (opt)"
+              type="date"
+              value={form.end}
+              onChange={(e) => setForm((p) => ({ ...p, end: e.target.value }))}
+              className="lg:col-span-2"
+            />
+            <div className="col-span-2 flex items-end sm:col-span-4 lg:col-span-2">
+              <Button
                 type="submit"
+                variant="primary"
+                size="md"
                 disabled={running}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-2 text-sm font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-50"
+                className="w-full"
               >
                 <Play className="h-4 w-4" fill="currentColor" />
                 {running ? "Running..." : "Run Backtest"}
-              </button>
+              </Button>
             </div>
           </div>
 
           {savedRuns.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3 text-xs">
-              <span className="inline-flex items-center gap-1.5 text-stone-400">
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-stone-200/80 pt-3 text-xs dark:border-stone-800">
+              <span className="inline-flex items-center gap-1.5 text-stone-600 dark:text-stone-400">
                 <History className="h-3.5 w-3.5" />
                 Saved Runs:
               </span>
@@ -319,10 +327,10 @@ export default function Backtest() {
                   key={r.id}
                   type="button"
                   onClick={() => loadRun(r.id)}
-                  className={`rounded-lg border px-2.5 py-1 transition ${
+                  className={`rounded-full border px-3 py-1 font-medium transition ${
                     result?.id === r.id
-                      ? "border-[#F0867C]/50 bg-[#F0867C]/15 text-[#F0867C]"
-                      : "border-white/10 bg-white/5 text-stone-300 hover:border-white/25"
+                      ? "border-brand-plum/40 bg-brand-plum/10 text-brand-plum dark:border-brand-coral/50 dark:bg-brand-coral/15 dark:text-brand-coral"
+                      : "border-stone-200 bg-white/75 text-stone-700 hover:border-brand-plum/40 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-300 dark:hover:border-brand-coral/50"
                   }`}
                 >
                   #{r.id} · Top {r.params?.top_n} · {r.params?.cost_bps}bps · CAGR{" "}
@@ -333,7 +341,7 @@ export default function Backtest() {
               ))}
             </div>
           )}
-        </form>
+        </GlassCard>
 
         {error && <ErrorState title="Backtest Error" message={error} />}
 
@@ -388,69 +396,78 @@ export default function Backtest() {
             </div>
 
             {/* Equity curve */}
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-              <h2 className="font-display text-base font-bold text-white">
+            <GlassCard as="section">
+              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 Equity Curve ({result.start_date} to {result.end_date})
               </h2>
-              <p className="mb-4 text-xs text-stone-400">
+              <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
                 Rebased to {formatINR(result.params?.initial_capital || 1000000, 0)} starting capital
               </p>
               <div className="h-[340px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
+                  <ComposedChart
                     data={result.equity_curve}
                     margin={{ top: 8, right: 12, left: 6, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <defs>
+                      <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chart.colors.main} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={chart.colors.main} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#a8a29e", fontSize: 11 }}
+                      tick={chart.axisTick}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
                       tickFormatter={(v) => v.slice(2, 7)}
                       minTickGap={35}
                     />
                     <YAxis
-                      tick={{ fill: "#a8a29e", fontSize: 11 }}
+                      tick={chart.axisTick}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
                       tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`}
                       width={64}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#141220",
-                        borderColor: "rgba(255,255,255,0.12)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
+                    <RechartsTooltip
+                      contentStyle={chart.tooltipStyle}
+                      labelStyle={chart.tooltipLabelStyle}
                       formatter={(val, name) => [formatINR(val, 0), name]}
                     />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Line
+                    <Legend wrapperStyle={chart.legendStyle} />
+                    <Area
                       type="monotone"
                       dataKey="portfolio_value"
                       name="Momentum Strategy"
-                      stroke="#F0867C"
+                      stroke={chart.colors.main}
                       strokeWidth={2.2}
+                      fill="url(#eqFill)"
                       dot={false}
+                      isAnimationActive={false}
                     />
                     <Line
                       type="monotone"
                       dataKey="benchmark_value"
                       name={result.benchmark?.name || "Benchmark"}
-                      stroke="#38bdf8"
+                      stroke={chart.colors.benchmark}
                       strokeWidth={1.75}
                       dot={false}
+                      isAnimationActive={false}
                     />
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            </section>
+            </GlassCard>
 
             {/* Drawdown + Yearly returns */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                <h3 className="font-display text-base font-bold text-white">
+              <GlassCard as="section">
+                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                   Strategy Drawdown
                 </h3>
-                <p className="mb-3 text-xs text-stone-400">
+                <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
                   Peak {strat?.max_drawdown_peak_date} → Trough {strat?.max_drawdown_trough_date}
                 </p>
                 <div className="h-[240px] w-full">
@@ -459,72 +476,85 @@ export default function Backtest() {
                       data={result.equity_curve}
                       margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <defs>
+                        <linearGradient id="ddFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={chart.colors.negative} stopOpacity={0} />
+                          <stop offset="95%" stopColor={chart.colors.negative} stopOpacity={0.3} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                       <XAxis
                         dataKey="date"
-                        tick={{ fill: "#a8a29e", fontSize: 10 }}
+                        tick={chart.axisTickSm}
+                        axisLine={chart.axisLine}
+                        tickLine={false}
                         tickFormatter={(v) => v.slice(2, 7)}
                         minTickGap={35}
                       />
                       <YAxis
-                        tick={{ fill: "#a8a29e", fontSize: 10 }}
+                        tick={chart.axisTickSm}
+                        axisLine={chart.axisLine}
+                        tickLine={false}
                         tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#141220",
-                          borderColor: "rgba(255,255,255,0.12)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
+                      <RechartsTooltip
+                        contentStyle={chart.tooltipStyle}
+                        labelStyle={chart.tooltipLabelStyle}
                         formatter={(val) => [`${(Number(val) * 100).toFixed(2)}%`, "Drawdown"]}
                       />
                       <Area
                         type="monotone"
                         dataKey="drawdown"
-                        stroke="#fb7185"
-                        fill="rgba(251,113,133,0.22)"
-                        strokeWidth={1.6}
+                        stroke={chart.colors.negative}
+                        fill="url(#ddFill)"
+                        strokeWidth={1.75}
+                        isAnimationActive={false}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </section>
+              </GlassCard>
 
-              <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                <h3 className="font-display text-base font-bold text-white">
+              <GlassCard as="section">
+                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                   Yearly Returns Table
                 </h3>
-                <p className="mb-3 text-xs text-stone-400">
+                <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
                   Calendar-year strategy vs {result.benchmark?.symbol}
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
-                      <tr className="border-b border-white/10 text-xs uppercase text-stone-400">
+                      <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase text-stone-600 dark:border-stone-800 dark:text-stone-400">
                         <th className="py-2 text-left">Year</th>
                         <th className="py-2 text-right">Strategy</th>
                         <th className="py-2 text-right">Benchmark</th>
                         <th className="py-2 text-right">Excess</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.06] tabular-nums">
+                    <tbody className="divide-y divide-stone-200/70 tabular-nums dark:divide-stone-800/80">
                       {(result.yearly_returns || []).map((y) => (
                         <tr key={y.year}>
-                          <td className="py-2.5 font-semibold text-white">{y.year}</td>
+                          <td className="py-2.5 font-semibold text-stone-900 dark:text-stone-100">
+                            {y.year}
+                          </td>
                           <td
                             className={`py-2.5 text-right font-semibold ${
-                              y.strategy_return >= 0 ? "text-emerald-400" : "text-rose-400"
+                              y.strategy_return >= 0
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {formatPct(y.strategy_return, 2)}
                           </td>
-                          <td className="py-2.5 text-right text-stone-300">
+                          <td className="py-2.5 text-right text-stone-700 dark:text-stone-300">
                             {formatPct(y.benchmark_return, 2)}
                           </td>
                           <td
-                            className={`py-2.5 text-right font-medium ${
-                              y.excess_return >= 0 ? "text-emerald-300" : "text-rose-300"
+                            className={`py-2.5 text-right font-semibold ${
+                              y.excess_return >= 0
+                                ? "text-emerald-600 dark:text-emerald-300"
+                                : "text-red-600 dark:text-red-300"
                             }`}
                           >
                             {formatPct(y.excess_return, 2)}
@@ -534,22 +564,22 @@ export default function Backtest() {
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </GlassCard>
             </div>
 
             {/* Monthly returns heatmap */}
             {monthlyHeatmapGrid.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                <h3 className="font-display text-base font-bold text-white">
+              <GlassCard as="section">
+                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                   Monthly Returns Heatmap (Strategy)
                 </h3>
-                <p className="mb-4 text-xs text-stone-400">
+                <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
                   Calendar-month percentage returns across the backtest horizon
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[740px] border-separate border-spacing-1 text-center text-xs">
                     <thead>
-                      <tr className="text-stone-400">
+                      <tr className="text-stone-600 dark:text-stone-400">
                         <th className="px-2 py-1 text-left">Year</th>
                         {MONTHS.map((m) => (
                           <th key={m} className="px-1.5 py-1 font-medium">
@@ -561,7 +591,7 @@ export default function Backtest() {
                     <tbody>
                       {monthlyHeatmapGrid.map((yr) => (
                         <tr key={yr.year}>
-                          <td className="px-2 py-1.5 text-left font-bold text-white">
+                          <td className="px-2 py-1.5 text-left font-bold text-stone-900 dark:text-stone-100">
                             {yr.year}
                           </td>
                           {MONTHS.map((_, idx) => {
@@ -584,12 +614,12 @@ export default function Backtest() {
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </GlassCard>
             )}
 
             {/* Rebalances log with Bought / Sold */}
             <section className="space-y-3">
-              <h3 className="font-display text-base font-bold text-white">
+              <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 Rebalance History ({result.rebalances?.length || 0} monthly rebalances)
               </h3>
               <DataTable
@@ -603,12 +633,12 @@ export default function Backtest() {
             </section>
 
             {/* Clear Limitations notice */}
-            <section className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-5 text-xs leading-relaxed text-amber-100/90">
-              <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-amber-200">
-                <ShieldAlert className="h-4 w-4" />
+            <section className="rounded-2xl border border-brand-gold/65 bg-brand-gold/20 p-5 text-xs leading-relaxed text-stone-800 shadow-sm backdrop-blur-md dark:border-brand-gold/30 dark:bg-brand-gold/10 dark:text-stone-200">
+              <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-stone-900 dark:text-brand-gold">
+                <ShieldAlert className="h-4 w-4 text-brand-plum dark:text-brand-gold" />
                 Simulation Limitations &amp; Disclaimer
               </div>
-              <ul className="list-disc space-y-1 pl-5 text-amber-100/80">
+              <ul className="list-disc space-y-1 pl-5 text-stone-700 dark:text-stone-300">
                 <li>
                   <strong>Survivorship bias</strong>: The universe uses today&apos;s Nifty 200 constituents rather than historical point-in-time index membership.
                 </li>
@@ -625,7 +655,7 @@ export default function Backtest() {
             </section>
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

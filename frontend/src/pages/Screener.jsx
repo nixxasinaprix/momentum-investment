@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Columns, Download, Search, SlidersHorizontal, Star, X } from "lucide-react";
+import { Columns, Download, Search, SlidersHorizontal, Star } from "lucide-react";
 import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
 import Sparkline from "../components/Sparkline";
-import { SkeletonTable } from "../components/Skeleton";
-import { ErrorState } from "../components/StateViews";
-import TrendBadge from "../components/TrendBadge";
+import {
+  Button,
+  Card,
+  DataTable,
+  ErrorState,
+  GlassCard,
+  Input,
+  PageContainer,
+  Select,
+  SkeletonTable,
+  TrendBadge,
+} from "../components/ui";
 import { usePipelineParams } from "../context/PipelineContext";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { useWatchlist } from "../hooks/useWatchlist";
@@ -35,10 +43,13 @@ const TREND_OPTIONS = [
 
 function ReturnCell({ value }) {
   if (value === null || value === undefined) {
-    return <span className="text-stone-500">—</span>;
+    return <span className="text-stone-400 dark:text-stone-500">—</span>;
   }
-  const cls = value >= 0 ? "text-emerald-400" : "text-rose-400";
-  return <span className={`font-medium ${cls}`}>{formatPct(value, 1)}</span>;
+  const cls =
+    value >= 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : "text-red-600 dark:text-red-400";
+  return <span className={`font-semibold ${cls}`}>{formatPct(value, 1)}</span>;
 }
 
 export default function Screener() {
@@ -49,7 +60,9 @@ export default function Screener() {
   const { isWatched, toggleWatchlist } = useWatchlist();
 
   const [query, setQuery] = useState("");
-  const [sectorFilter, setSectorFilter] = useState(() => searchParams.get("sector") || "All");
+  const [sectorFilter, setSectorFilter] = useState(
+    () => searchParams.get("sector") || "All"
+  );
   const [trendFilter, setTrendFilter] = useState("All");
   const [minScore, setMinScore] = useState(-3);
   const [showColMenu, setShowColMenu] = useState(false);
@@ -60,12 +73,16 @@ export default function Screener() {
   const stocks = useMemo(() => data?.stocks || [], [data]);
 
   const sectors = useMemo(() => {
-    const unique = Array.from(new Set(stocks.map((s) => s.sector).filter(Boolean))).sort();
+    const unique = Array.from(
+      new Set(stocks.map((s) => s.sector).filter(Boolean))
+    ).sort();
     return ["All", ...unique];
   }, [stocks]);
 
   const scoreBounds = useMemo(() => {
-    const scores = stocks.map((s) => s.score).filter((v) => v !== null && v !== undefined);
+    const scores = stocks
+      .map((s) => s.score)
+      .filter((v) => v !== null && v !== undefined);
     if (!scores.length) return { min: -3, max: 3 };
     return {
       min: Math.floor(Math.min(...scores) * 10) / 10,
@@ -126,8 +143,8 @@ export default function Screener() {
               aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}
               className={`rounded-lg p-1 transition ${
                 watched
-                  ? "text-amber-400 hover:bg-amber-400/15"
-                  : "text-stone-600 hover:bg-white/10 hover:text-stone-300"
+                  ? "text-amber-500 hover:bg-amber-500/15 dark:text-brand-gold"
+                  : "text-stone-400 hover:bg-stone-200/70 hover:text-stone-700 dark:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300"
               }`}
             >
               <Star className="h-4 w-4" fill={watched ? "currentColor" : "none"} />
@@ -141,7 +158,7 @@ export default function Screener() {
         sortable: true,
         defaultDir: "asc",
         render: (row) => (
-          <span className="font-semibold tabular-nums text-stone-300">
+          <span className="font-semibold tabular-nums text-stone-700 dark:text-stone-300">
             {row.rank !== null ? `#${row.rank}` : "—"}
           </span>
         ),
@@ -153,8 +170,10 @@ export default function Screener() {
         defaultDir: "asc",
         render: (row) => (
           <div className="min-w-[140px]">
-            <div className="font-semibold text-white">{shortSymbol(row.symbol)}</div>
-            <div className="max-w-[200px] truncate text-xs text-stone-400">
+            <div className="font-semibold text-stone-900 dark:text-stone-100">
+              {shortSymbol(row.symbol)}
+            </div>
+            <div className="max-w-[200px] truncate text-xs text-stone-500 dark:text-stone-400">
               {row.name}
             </div>
           </div>
@@ -166,7 +185,7 @@ export default function Screener() {
         sortable: true,
         defaultDir: "asc",
         render: (row) => (
-          <span className="block max-w-[160px] truncate text-xs text-stone-300">
+          <span className="block max-w-[160px] truncate text-xs text-stone-600 dark:text-stone-300">
             {row.sector}
           </span>
         ),
@@ -176,7 +195,11 @@ export default function Screener() {
         label: "Price",
         sortable: true,
         align: "right",
-        render: (row) => <span className="font-medium text-white">{formatINR(row.last_price)}</span>,
+        render: (row) => (
+          <span className="font-semibold text-stone-900 dark:text-stone-100">
+            {formatINR(row.last_price)}
+          </span>
+        ),
       },
       {
         key: "score",
@@ -184,7 +207,7 @@ export default function Screener() {
         sortable: true,
         align: "right",
         render: (row) => (
-          <span className="font-display font-bold text-[#F0867C]">
+          <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
             {row.score !== null && row.score !== undefined ? row.score.toFixed(2) : "—"}
           </span>
         ),
@@ -269,10 +292,10 @@ export default function Screener() {
             <span
               className={
                 row.rsi_14 >= 70
-                  ? "text-amber-300"
+                  ? "font-semibold text-amber-700 dark:text-brand-gold"
                   : row.rsi_14 <= 30
-                  ? "text-emerald-300"
-                  : "text-stone-200"
+                  ? "font-semibold text-emerald-600 dark:text-emerald-300"
+                  : "text-stone-700 dark:text-stone-200"
               }
             >
               {row.rsi_14.toFixed(1)}
@@ -320,15 +343,15 @@ export default function Screener() {
       title="Momentum Screener"
       subtitle={`Filter and rank all ${stocks.length} Nifty 500 constituents · As of ${data?.as_of || "—"}`}
       actions={
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleExportCsv}
           disabled={!filteredRows.length}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:border-[#F0867C]/50 hover:bg-[#8C4570]/40 disabled:opacity-40"
         >
           <Download className="h-3.5 w-3.5" />
-          Export CSV
-        </button>
+          <span>Export CSV</span>
+        </Button>
       }
     >
       {loading && !data ? (
@@ -336,80 +359,97 @@ export default function Screener() {
       ) : error && !data ? (
         <ErrorState title="Failed to load screener" message={error} onRetry={refetch} />
       ) : (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#12131F]/80 px-4 py-2.5 text-xs text-stone-300">
+        <PageContainer className="space-y-4">
+          <GlassCard
+            padding="px-4 py-2.5"
+            className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-600 dark:text-stone-300"
+          >
             <span>
-              Active Strategy Settings: <strong>{pipelineParams.method}</strong> · Lookback{" "}
-              <strong>{pipelineParams.lookback_days}d</strong> / Skip{" "}
-              <strong>{pipelineParams.skip_days}d</strong> · Top{" "}
-              <strong>{pipelineParams.top_n}</strong>
+              Active Strategy Settings:{" "}
+              <strong className="text-stone-900 dark:text-stone-100">
+                {pipelineParams.method}
+              </strong>{" "}
+              · Lookback{" "}
+              <strong className="text-stone-900 dark:text-stone-100">
+                {pipelineParams.lookback_days}d
+              </strong>{" "}
+              / Skip{" "}
+              <strong className="text-stone-900 dark:text-stone-100">
+                {pipelineParams.skip_days}d
+              </strong>{" "}
+              · Top{" "}
+              <strong className="text-stone-900 dark:text-stone-100">
+                {pipelineParams.top_n}
+              </strong>
             </span>
             <div className="flex items-center gap-3">
-              <Link to="/picks" className="font-semibold text-[#F0867C] hover:underline">
+              <Link
+                to="/picks"
+                className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
+              >
                 View Today&apos;s Picks
               </Link>
-              <Link to="/strategy" className="text-stone-400 hover:text-white">
+              <Link
+                to="/strategy"
+                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-brand-coral"
+              >
                 Edit in Strategy Builder
               </Link>
             </div>
-          </div>
+          </GlassCard>
+
           {/* Filters toolbar */}
-          <div className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-4 shadow-lg">
+          <GlassCard padding="p-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
-              <div className="relative xl:col-span-4">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                <input
+              <div className="xl:col-span-4">
+                <Input
+                  icon={Search}
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onClear={() => setQuery("")}
                   placeholder="Search symbol, company, or sector..."
-                  className="w-full rounded-xl border border-white/10 bg-[#07080F] py-2 pl-9 pr-8 text-sm text-white placeholder:text-stone-500 focus:border-[#F0867C] focus:outline-none"
                 />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-white"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
               </div>
 
               <div className="xl:col-span-3">
-                <select
+                <Select
+                  aria-label="Filter by sector"
                   value={sectorFilter}
                   onChange={(e) => handleSectorChange(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
                 >
                   {sectors.map((sec) => (
                     <option key={sec} value={sec}>
                       {sec === "All" ? "All Sectors" : sec}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div className="xl:col-span-2">
-                <select
+                <Select
+                  aria-label="Filter by trend"
                   value={trendFilter}
                   onChange={(e) => setTrendFilter(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-[#07080F] px-3 py-2 text-sm text-white focus:border-[#F0867C] focus:outline-none"
                 >
                   {TREND_OPTIONS.map((t) => (
                     <option key={t} value={t}>
                       {t === "All" ? "All Trends" : t}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#07080F] px-3 py-1.5 xl:col-span-3">
-                <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-[#F0867C]" />
+              <Card
+                variant="well"
+                padding="px-3 py-1.5"
+                className="flex items-center gap-3 xl:col-span-3"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-brand-plum dark:text-brand-coral" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex justify-between text-[11px] text-stone-400">
+                  <div className="flex justify-between text-[11px] text-stone-600 dark:text-stone-400">
                     <span>Min Score</span>
-                    <span className="font-semibold text-white">
+                    <span className="font-bold tabular-nums text-brand-plum dark:text-brand-coral">
                       {minScore <= scoreBounds.min ? "Any" : minScore.toFixed(1)}
                     </span>
                   </div>
@@ -420,23 +460,29 @@ export default function Screener() {
                     step={0.1}
                     value={minScore}
                     onChange={(e) => setMinScore(Number(e.target.value))}
-                    className="h-1.5 w-full cursor-pointer accent-[#F0867C]"
+                    className="momentum-slider mt-1 w-full cursor-pointer"
                   />
                 </div>
-              </div>
+              </Card>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3 text-xs text-stone-400">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200/80 pt-3 text-xs text-stone-600 dark:border-stone-800 dark:text-stone-400">
               <div className="flex items-center gap-3">
                 <span>
-                  Showing <strong className="text-white">{filteredRows.length}</strong> of{" "}
-                  {stocks.length} stocks
+                  Showing{" "}
+                  <strong className="text-stone-900 dark:text-stone-100">
+                    {filteredRows.length}
+                  </strong>{" "}
+                  of {stocks.length} stocks
                 </span>
-                {(query || sectorFilter !== "All" || trendFilter !== "All" || minScore > scoreBounds.min) && (
+                {(query ||
+                  sectorFilter !== "All" ||
+                  trendFilter !== "All" ||
+                  minScore > scoreBounds.min) && (
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="font-medium text-[#F0867C] hover:underline"
+                    className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
                   >
                     Reset filters
                   </button>
@@ -444,20 +490,20 @@ export default function Screener() {
               </div>
 
               <div className="relative">
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="xs"
                   onClick={() => setShowColMenu((v) => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-stone-200 hover:border-white/25"
                 >
                   <Columns className="h-3.5 w-3.5" />
                   Columns
-                </button>
+                </Button>
                 {showColMenu && (
-                  <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-white/15 bg-[#151624] p-2 shadow-2xl">
+                  <div className="absolute right-0 z-20 mt-2 w-52 rounded-2xl border border-stone-200 bg-white/95 p-2 shadow-2xl backdrop-blur-lg dark:border-stone-700 dark:bg-stone-900/95">
                     {OPTIONAL_COLUMNS.map((col) => (
                       <label
                         key={col.key}
-                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-stone-200 hover:bg-white/5"
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800"
                       >
                         <input
                           type="checkbox"
@@ -468,7 +514,7 @@ export default function Screener() {
                               [col.key]: !prev[col.key],
                             }))
                           }
-                          className="accent-[#F0867C]"
+                          className="accent-brand-plum dark:accent-brand-coral"
                         />
                         {col.label}
                       </label>
@@ -477,7 +523,7 @@ export default function Screener() {
                 )}
               </div>
             </div>
-          </div>
+          </GlassCard>
 
           <DataTable
             columns={columns}
@@ -485,11 +531,13 @@ export default function Screener() {
             defaultSortKey="rank"
             defaultSortDir="asc"
             pageSize={25}
+            stickyHeader
+            zebra
             onRowClick={(row) => navigate(`/stock/${encodeURIComponent(row.symbol)}`)}
             emptyTitle="No stocks match your filters"
             emptyDescription="Lower the minimum momentum score or clear the sector/trend filter."
           />
-        </div>
+        </PageContainer>
       )}
     </AppLayout>
   );

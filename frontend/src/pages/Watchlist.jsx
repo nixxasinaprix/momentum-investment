@@ -1,12 +1,19 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from "lucide-react";
 import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
 import Sparkline from "../components/Sparkline";
-import { SkeletonTable } from "../components/Skeleton";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import TrendBadge from "../components/TrendBadge";
+import {
+  Button,
+  DataTable,
+  DisclaimerBanner,
+  EmptyState,
+  ErrorState,
+  PageContainer,
+  Select,
+  SkeletonTable,
+  TrendBadge,
+} from "../components/ui";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { formatINR, formatPct, shortSymbol } from "../lib/format";
@@ -42,7 +49,7 @@ export default function Watchlist() {
       sortable: true,
       defaultDir: "asc",
       render: (r) => (
-        <span className="font-semibold text-white">
+        <span className="font-semibold tabular-nums text-stone-900 dark:text-stone-100">
           {r.rank != null ? `#${r.rank}` : "—"}
         </span>
       ),
@@ -54,24 +61,24 @@ export default function Watchlist() {
       align: "right",
       render: (r) => {
         if (r.rank_change === null || r.rank_change === undefined) {
-          return <span className="text-stone-500">—</span>;
+          return <span className="text-stone-400 dark:text-stone-500">—</span>;
         }
         if (r.rank_change > 0) {
           return (
-            <span className="inline-flex items-center gap-0.5 font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
               <ArrowUp className="h-3 w-3" />+{r.rank_change}
             </span>
           );
         }
         if (r.rank_change < 0) {
           return (
-            <span className="inline-flex items-center gap-0.5 font-semibold text-rose-400">
+            <span className="inline-flex items-center gap-0.5 font-semibold text-red-600 dark:text-red-400">
               <ArrowDown className="h-3 w-3" />
               {r.rank_change}
             </span>
           );
         }
-        return <span className="text-stone-400">0</span>;
+        return <span className="text-stone-500 dark:text-stone-400">0</span>;
       },
     },
     {
@@ -81,8 +88,12 @@ export default function Watchlist() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
-          <div className="max-w-[200px] truncate text-xs text-stone-400">{r.name}</div>
+          <div className="font-semibold text-stone-900 dark:text-stone-100">
+            {shortSymbol(r.symbol)}
+          </div>
+          <div className="max-w-[200px] truncate text-xs text-stone-500 dark:text-stone-400">
+            {r.name}
+          </div>
         </div>
       ),
     },
@@ -100,7 +111,13 @@ export default function Watchlist() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className={(r.ret_12_1m ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}>
+        <span
+          className={`font-semibold ${
+            (r.ret_12_1m ?? 0) >= 0
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-red-600 dark:text-red-400"
+          }`}
+        >
           {formatPct(r.ret_12_1m, 1)}
         </span>
       ),
@@ -111,7 +128,7 @@ export default function Watchlist() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className="font-bold text-[#F0867C]">
+        <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
           {r.score != null ? r.score.toFixed(2) : "—"}
         </span>
       ),
@@ -140,7 +157,7 @@ export default function Watchlist() {
             e.stopPropagation();
             toggleWatchlist(r.symbol);
           }}
-          className="rounded-lg p-1.5 text-stone-400 hover:bg-rose-500/15 hover:text-rose-300"
+          className="rounded-lg p-1.5 text-stone-400 transition hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400"
           aria-label={`Remove ${r.symbol} from watchlist`}
         >
           <Trash2 className="h-4 w-4" />
@@ -156,32 +173,27 @@ export default function Watchlist() {
       actions={
         <div className="flex items-center gap-2">
           {availableToAdd.length > 0 && (
-            <div className="relative flex items-center">
-              <Plus className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#F0867C]" />
-              <select
-                value={addPicker}
-                onChange={(e) => handleAdd(e.target.value)}
-                aria-label="Add stock to watchlist"
-                className="rounded-xl border border-white/15 bg-[#12131F] py-1.5 pl-8 pr-3 text-xs font-medium text-white focus:border-[#F0867C] focus:outline-none"
-              >
-                <option value="">Add stock...</option>
-                {availableToAdd.map((s) => (
-                  <option key={s.symbol} value={s.symbol}>
-                    {shortSymbol(s.symbol)} — {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              icon={Plus}
+              value={addPicker}
+              onChange={(e) => handleAdd(e.target.value)}
+              aria-label="Add stock to watchlist"
+              className="w-40 sm:w-52"
+              selectClassName="py-1.5 text-xs"
+            >
+              <option value="">Add stock...</option>
+              {availableToAdd.map((s) => (
+                <option key={s.symbol} value={s.symbol}>
+                  {shortSymbol(s.symbol)} — {s.name}
+                </option>
+              ))}
+            </Select>
           )}
           {watchlist.length > 0 && (
-            <button
-              type="button"
-              onClick={clearWatchlist}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-300 hover:border-rose-400/50 hover:text-rose-300"
-            >
+            <Button variant="danger" size="sm" onClick={clearWatchlist}>
               <Trash2 className="h-3.5 w-3.5" />
-              Clear All
-            </button>
+              <span className="hidden sm:inline">Clear All</span>
+            </Button>
           )}
         </div>
       }
@@ -189,29 +201,37 @@ export default function Watchlist() {
       {loading && !data ? (
         <SkeletonTable rows={6} cols={8} />
       ) : error && !data ? (
-        <ErrorState title="Could not load watchlist metrics" message={error} onRetry={refetch} />
-      ) : !watchedRows.length ? (
-        <EmptyState
-          icon={Star}
-          title="Your watchlist is empty"
-          description="Use the Add stock selector above, or click the star icon on any stock in the Screener or Stock Detail page."
-          action={
-            <Link
-              to="/screener"
-              className="inline-flex items-center rounded-xl bg-[#8C4570] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#7A3B61]"
-            >
-              Browse Screener
-            </Link>
-          }
+        <ErrorState
+          title="Could not load watchlist metrics"
+          message={error}
+          onRetry={refetch}
         />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={watchedRows}
-          defaultSortKey="rank"
-          defaultSortDir="asc"
-          onRowClick={(r) => navigate(`/stock/${encodeURIComponent(r.symbol)}`)}
-        />
+        <PageContainer>
+          <DisclaimerBanner />
+
+          {!watchedRows.length ? (
+            <EmptyState
+              icon={Star}
+              title="Your watchlist is empty"
+              description="Use the Add stock selector above, or click the star icon on any stock in the Screener or Stock Detail page."
+              action={
+                <Button variant="primary" size="md" to="/screener">
+                  Browse Screener
+                </Button>
+              }
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              rows={watchedRows}
+              defaultSortKey="rank"
+              defaultSortDir="asc"
+              stickyHeader
+              onRowClick={(r) => navigate(`/stock/${encodeURIComponent(r.symbol)}`)}
+            />
+          )}
+        </PageContainer>
       )}
     </AppLayout>
   );

@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
-import { Compass, Home } from "lucide-react";
 import { useEffect } from "react";
+import { Compass, Home } from "lucide-react";
+import { Badge, BrandMark, Button, GlassCard, ThemeToggle } from "../components/ui";
 
 export default function NotFound() {
   useEffect(() => {
@@ -8,36 +8,49 @@ export default function NotFound() {
   }, []);
 
   return (
-    <main className="dark flex min-h-[100dvh] flex-col items-center justify-center bg-[#07080F] px-4 text-center text-white antialiased">
-      <div className="rounded-3xl border border-white/10 bg-[#12131F]/90 p-10 shadow-2xl">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#F0867C]/30 bg-[#F0867C]/10 text-[#F0867C]">
+    <main className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 text-center text-stone-900 antialiased transition-colors duration-700 dark:text-stone-100">
+      <div className="fixed right-4 top-4 z-20">
+        <ThemeToggle />
+      </div>
+
+      <GlassCard
+        variant="elevated"
+        padding="p-8 sm:p-10"
+        className="relative z-10 max-w-md rounded-3xl"
+      >
+        <div className="mb-6 flex justify-center">
+          <BrandMark title="Momentum Investment" />
+        </div>
+
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-coral/35 bg-brand-coral/15 text-brand-plum dark:border-brand-coral/30 dark:bg-brand-coral/10 dark:text-brand-coral">
           <Compass className="h-7 w-7" />
         </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-widest text-[#F0867C]">
-          404 · Route Not Found
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
-          This research page doesn&apos;t exist
+
+        <div className="mt-5">
+          <Badge variant="coral" size="md">
+            404 · Route Not Found
+          </Badge>
+        </div>
+
+        <h1 className="mt-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+          <span className="bg-gradient-to-r from-brand-plum via-brand-coral to-brand-gold bg-clip-text text-transparent dark:from-brand-coral dark:via-brand-gold dark:to-surface-cream">
+            This research page doesn&apos;t exist
+          </span>
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-stone-400">
+        <p className="mx-auto mt-2 max-w-sm text-sm text-stone-600 dark:text-stone-400">
           The URL you requested is not part of the Momentum Investment workspace.
         </p>
+
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
-          >
-            Go to Dashboard
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-stone-200 transition hover:border-white/30"
-          >
+          <Button variant="primary" pill size="lg" to="/picks">
+            Go to Today&apos;s Picks
+          </Button>
+          <Button variant="secondary" pill size="lg" to="/">
             <Home className="h-4 w-4" />
             Home
-          </Link>
+          </Button>
         </div>
-      </div>
+      </GlassCard>
     </main>
   );
 }

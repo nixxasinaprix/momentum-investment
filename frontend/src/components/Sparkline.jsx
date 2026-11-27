@@ -1,8 +1,10 @@
 import { useId, useMemo } from "react";
 import { Line, LineChart, ResponsiveContainer, YAxis } from "recharts";
+import { useChartTheme } from "../lib/chartTheme";
 
 export default function Sparkline({ data = [], positive, height = 34 }) {
   const gradId = useId();
+  const chart = useChartTheme();
 
   const chartData = useMemo(
     () => (Array.isArray(data) ? data.map((v, idx) => ({ idx, v })) : []),
@@ -10,14 +12,14 @@ export default function Sparkline({ data = [], positive, height = 34 }) {
   );
 
   if (chartData.length < 2) {
-    return <span className="text-xs text-stone-500">—</span>;
+    return <span className="text-xs text-stone-400 dark:text-stone-500">—</span>;
   }
 
   const isUp =
     positive !== undefined
       ? positive
       : chartData[chartData.length - 1].v >= chartData[0].v;
-  const stroke = isUp ? "#34d399" : "#fb7185";
+  const stroke = isUp ? chart.colors.positive : chart.colors.negative;
 
   return (
     <div style={{ width: "100%", height }} className="min-w-[84px]">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { ArrowLeft, Calculator, Star } from "lucide-react";
 import {
   Area,
@@ -11,27 +11,45 @@ import {
   LineChart,
   ReferenceLine,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import AppLayout from "../components/AppLayout";
 import MathFormula from "../components/MathFormula";
-import { SkeletonCard, SkeletonChart } from "../components/Skeleton";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import StatCard from "../components/StatCard";
-import TrendBadge from "../components/TrendBadge";
+import {
+  Badge,
+  Button,
+  Card,
+  DisclaimerBanner,
+  EmptyState,
+  ErrorState,
+  GlassCard,
+  PageContainer,
+  SegmentedControl,
+  SkeletonCard,
+  SkeletonChart,
+  StatCard,
+  Tooltip,
+  TrendBadge,
+} from "../components/ui";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { usePipelineParams } from "../context/PipelineContext";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { useChartTheme } from "../lib/chartTheme";
 import { formatCompactVolume, formatINR, formatPct, shortSymbol } from "../lib/format";
 
-const RANGES = ["1y", "3y", "5y"];
+const RANGES = [
+  { value: "1y", label: "1Y" },
+  { value: "3y", label: "3Y" },
+  { value: "5y", label: "5Y" },
+];
 
 export default function StockDetail() {
   const { symbol } = useParams();
   const decodedSymbol = decodeURIComponent(symbol || "");
   const { params: pipelineParams } = usePipelineParams();
+  const chart = useChartTheme();
   const [range, setRange] = useState("1y");
   const [showSma20, setShowSma20] = useState(false);
   const [showSma50, setShowSma50] = useState(true);
@@ -54,80 +72,87 @@ export default function StockDetail() {
       subtitle={data ? `${data.stock.sector || "NSE"} · As of ${data.as_of}` : "Loading security analysis"}
       actions={
         <div className="flex items-center gap-2">
-          <Link
-            to="/screener"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30 hover:text-white"
-          >
+          <Button variant="secondary" size="sm" to="/screener">
             <ArrowLeft className="h-3.5 w-3.5" />
-            Screener
-          </Link>
-          <button
-            type="button"
+            <span className="hidden sm:inline">Screener</span>
+          </Button>
+          <Button
+            variant={watched ? "primary" : "secondary"}
+            size="sm"
             onClick={() => toggleWatchlist(decodedSymbol)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+            className={
               watched
-                ? "border-amber-400/50 bg-amber-400/15 text-amber-300"
-                : "border-white/15 bg-white/5 text-stone-200 hover:border-amber-400/40"
-            }`}
+                ? "border border-brand-gold/60 bg-brand-gold/25 text-stone-900 shadow-none hover:bg-brand-gold/35 dark:border-brand-gold/50 dark:bg-brand-gold/15 dark:text-brand-gold dark:hover:bg-brand-gold/25"
+                : ""
+            }
           >
             <Star className="h-3.5 w-3.5" fill={watched ? "currentColor" : "none"} />
-            {watched ? "Watchlisted" : "Watchlist"}
-          </button>
+            <span>{watched ? "Watchlisted" : "Watchlist"}</span>
+          </Button>
         </div>
       }
     >
       {loading && !data ? (
-        <div className="space-y-6">
+        <PageContainer>
           <SkeletonCard count={4} />
           <SkeletonChart height={360} />
           <SkeletonChart height={220} />
-        </div>
+        </PageContainer>
       ) : error && !data ? (
-        <ErrorState title="Could not load stock analysis" message={error} onRetry={refetch} />
+        <ErrorState
+          title="Could not load stock analysis"
+          message={error}
+          onRetry={refetch}
+        />
       ) : !data || !summary ? (
-        <EmptyState title="No analysis available" description="No price bars found for this symbol." />
+        <EmptyState
+          title="No analysis available"
+          description="No price bars found for this symbol."
+        />
       ) : (
-        <div className="space-y-6">
+        <PageContainer>
+          <DisclaimerBanner />
+
           {/* Trend verdict banner */}
-          <div className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg md:flex-row md:items-center">
+          <GlassCard className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="font-display text-3xl font-bold text-white">
+                <span className="font-display text-3xl font-bold tabular-nums text-stone-900 dark:text-stone-100">
                   {formatINR(summary.last_price)}
                 </span>
                 <TrendBadge trend={summary.trend} size="md" />
                 {summary.rank && (
-                  <span className="rounded-full border border-[#F0867C]/35 bg-[#F0867C]/10 px-3 py-1 text-xs font-semibold text-[#F0867C]">
+                  <Badge variant="plum" size="md">
                     Rank #{summary.rank} / {summary.universe_size}
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <p className="max-w-3xl text-sm text-stone-300">
+              <p className="max-w-3xl text-sm text-stone-700 dark:text-stone-300">
                 {summary.trend_explanation}
               </p>
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-3 text-xs">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2">
-                <div className="text-stone-400">50 DMA</div>
-                <div className="mt-0.5 font-semibold text-amber-300">
+              <Card variant="well" padding="px-3.5 py-2">
+                <div className="text-stone-500 dark:text-stone-400">50 DMA</div>
+                <div className="mt-0.5 font-semibold tabular-nums text-amber-700 dark:text-brand-gold">
                   {formatINR(summary.sma_50)}
                 </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2">
-                <div className="text-stone-400">200 DMA</div>
-                <div className="mt-0.5 font-semibold text-fuchsia-300">
+              </Card>
+              <Card variant="well" padding="px-3.5 py-2">
+                <div className="text-stone-500 dark:text-stone-400">200 DMA</div>
+                <div className="mt-0.5 font-semibold tabular-nums text-brand-plum dark:text-brand-mauve">
                   {formatINR(summary.sma_200)}
                 </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2">
-                <div className="text-stone-400">RSI(14)</div>
-                <div className="mt-0.5 font-semibold text-white">
+              </Card>
+              <Card variant="well" padding="px-3.5 py-2">
+                <div className="text-stone-500 dark:text-stone-400">RSI(14)</div>
+                <div className="mt-0.5 font-semibold tabular-nums text-stone-900 dark:text-stone-100">
                   {summary.rsi_14 !== null ? summary.rsi_14.toFixed(1) : "—"}
                 </div>
-              </div>
+              </Card>
             </div>
-          </div>
+          </GlassCard>
 
           {/* Key stat cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -173,13 +198,13 @@ export default function StockDetail() {
           </div>
 
           {/* Main Price + SMA Chart */}
-          <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+          <GlassCard as="section">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-display text-base font-bold text-white">
+                <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                   Adjusted Price &amp; Moving Averages
                 </h2>
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-stone-600 dark:text-stone-400">
                   Corporate-action adjusted close with toggleable 20/50/200-day SMAs
                 </p>
               </div>
@@ -188,10 +213,10 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma20((v) => !v)}
-                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                     showSma20
-                      ? "border-sky-400/50 bg-sky-400/15 text-sky-300"
-                      : "border-white/10 bg-white/5 text-stone-400"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300"
+                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
                   }`}
                 >
                   SMA 20
@@ -199,10 +224,10 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma50((v) => !v)}
-                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                     showSma50
-                      ? "border-amber-400/50 bg-amber-400/15 text-amber-300"
-                      : "border-white/10 bg-white/5 text-stone-400"
+                      ? "border-brand-gold/70 bg-brand-gold/25 text-stone-800 dark:border-brand-gold/45 dark:bg-brand-gold/15 dark:text-brand-gold"
+                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
                   }`}
                 >
                   SMA 50
@@ -210,31 +235,22 @@ export default function StockDetail() {
                 <button
                   type="button"
                   onClick={() => setShowSma200((v) => !v)}
-                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                     showSma200
-                      ? "border-fuchsia-400/50 bg-fuchsia-400/15 text-fuchsia-300"
-                      : "border-white/10 bg-white/5 text-stone-400"
+                      ? "border-brand-mauve/50 bg-brand-mauve/15 text-brand-plum dark:border-brand-mauve/45 dark:bg-brand-mauve/20 dark:text-brand-mauve"
+                      : "border-stone-200 bg-white/75 text-stone-500 dark:border-stone-700 dark:bg-stone-800/75 dark:text-stone-400"
                   }`}
                 >
                   SMA 200
                 </button>
 
-                <div className="ml-2 flex rounded-xl border border-white/10 bg-[#07080F] p-0.5">
-                  {RANGES.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRange(r)}
-                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase transition ${
-                        range === r
-                          ? "bg-[#8C4570] text-white"
-                          : "text-stone-400 hover:text-white"
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  size="xs"
+                  value={range}
+                  onChange={setRange}
+                  options={RANGES}
+                  className="ml-1"
+                />
               </div>
             </div>
 
@@ -243,30 +259,30 @@ export default function StockDetail() {
                 <ComposedChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F0867C" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#F0867C" stopOpacity={0} />
+                      <stop offset="5%" stopColor={chart.colors.main} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={chart.colors.main} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fill: "#a8a29e", fontSize: 11 }}
+                    tick={chart.axisTick}
+                    axisLine={chart.axisLine}
+                    tickLine={false}
                     tickFormatter={(v) => v.slice(2, 7)}
                     minTickGap={30}
                   />
                   <YAxis
                     domain={["auto", "auto"]}
-                    tick={{ fill: "#a8a29e", fontSize: 11 }}
+                    tick={chart.axisTick}
+                    axisLine={chart.axisLine}
+                    tickLine={false}
                     tickFormatter={(v) => `₹${Math.round(v)}`}
                     width={64}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#141220",
-                      borderColor: "rgba(255,255,255,0.12)",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                    }}
+                  <RechartsTooltip
+                    contentStyle={chart.tooltipStyle}
+                    labelStyle={chart.tooltipLabelStyle}
                     formatter={(val, name) => [
                       val != null ? formatINR(val) : "—",
                       name,
@@ -276,19 +292,21 @@ export default function StockDetail() {
                     type="monotone"
                     dataKey="close"
                     name="Close"
-                    stroke="#F0867C"
+                    stroke={chart.colors.main}
                     strokeWidth={2}
                     fill="url(#priceFill)"
                     dot={false}
+                    isAnimationActive={false}
                   />
                   {showSma20 && (
                     <Line
                       type="monotone"
                       dataKey="sma_20"
                       name="SMA 20"
-                      stroke="#38bdf8"
+                      stroke={chart.colors.positive}
                       strokeWidth={1.5}
                       dot={false}
+                      isAnimationActive={false}
                     />
                   )}
                   {showSma50 && (
@@ -296,9 +314,10 @@ export default function StockDetail() {
                       type="monotone"
                       dataKey="sma_50"
                       name="SMA 50"
-                      stroke="#fbbf24"
-                      strokeWidth={1.75}
+                      stroke={chart.colors.second}
+                      strokeWidth={1.85}
                       dot={false}
+                      isAnimationActive={false}
                     />
                   )}
                   {showSma200 && (
@@ -306,100 +325,117 @@ export default function StockDetail() {
                       type="monotone"
                       dataKey="sma_200"
                       name="SMA 200"
-                      stroke="#e879f9"
-                      strokeWidth={1.75}
+                      stroke={chart.colors.third}
+                      strokeWidth={1.85}
                       dot={false}
+                      isAnimationActive={false}
                     />
                   )}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-          </section>
+          </GlassCard>
 
           {/* Volume + RSI grid */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-              <h3 className="font-display text-sm font-bold text-white">Daily Volume</h3>
-              <p className="mb-3 text-xs text-stone-400">Traded shares across selected range</p>
+            <GlassCard as="section">
+              <h3 className="font-display text-sm font-bold text-stone-900 dark:text-stone-100">
+                Daily Volume
+              </h3>
+              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
+                Traded shares across selected range
+              </p>
               <div className="h-[210px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#a8a29e", fontSize: 10 }}
+                      tick={chart.axisTickSm}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
                       tickFormatter={(v) => v.slice(2, 7)}
                       minTickGap={30}
                     />
                     <YAxis
-                      tick={{ fill: "#a8a29e", fontSize: 10 }}
+                      tick={chart.axisTickSm}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
                       tickFormatter={formatCompactVolume}
                       width={52}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#141220",
-                        borderColor: "rgba(255,255,255,0.12)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
+                    <RechartsTooltip
+                      contentStyle={chart.tooltipStyle}
+                      labelStyle={chart.tooltipLabelStyle}
                       formatter={(val) => [formatCompactVolume(val), "Volume"]}
                     />
-                    <Bar dataKey="volume" fill="#8C4570" radius={[2, 2, 0, 0]} />
+                    <Bar
+                      dataKey="volume"
+                      fill={chart.colors.third}
+                      radius={[2, 2, 0, 0]}
+                      isAnimationActive={false}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </section>
+            </GlassCard>
 
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-              <h3 className="font-display text-sm font-bold text-white">
+            <GlassCard as="section">
+              <h3 className="font-display text-sm font-bold text-stone-900 dark:text-stone-100">
                 RSI(14) Oscillator
               </h3>
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
                 Overbought (&gt;70) and oversold (&lt;30) thresholds marked
               </p>
               <div className="h-[210px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={series} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "#a8a29e", fontSize: 10 }}
+                      tick={chart.axisTickSm}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
                       tickFormatter={(v) => v.slice(2, 7)}
                       minTickGap={30}
                     />
-                    <YAxis domain={[0, 100]} tick={{ fill: "#a8a29e", fontSize: 10 }} />
-                    <ReferenceLine y={70} stroke="#fb7185" strokeDasharray="4 4" />
-                    <ReferenceLine y={30} stroke="#34d399" strokeDasharray="4 4" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#141220",
-                        borderColor: "rgba(255,255,255,0.12)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
-                      formatter={(val) => [val != null ? Number(val).toFixed(2) : "—", "RSI(14)"]}
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={chart.axisTickSm}
+                      axisLine={chart.axisLine}
+                      tickLine={false}
+                    />
+                    <ReferenceLine y={70} stroke={chart.colors.negative} strokeDasharray="4 4" />
+                    <ReferenceLine y={30} stroke={chart.colors.positive} strokeDasharray="4 4" />
+                    <RechartsTooltip
+                      contentStyle={chart.tooltipStyle}
+                      labelStyle={chart.tooltipLabelStyle}
+                      formatter={(val) => [
+                        val != null ? Number(val).toFixed(2) : "—",
+                        "RSI(14)",
+                      ]}
                     />
                     <Line
                       type="monotone"
                       dataKey="rsi_14"
-                      stroke="#38bdf8"
+                      stroke={chart.colors.main}
                       strokeWidth={1.75}
                       dot={false}
+                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </section>
+            </GlassCard>
           </div>
 
           {/* Rank history + Step-by-step score breakdown */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-              <h3 className="font-display text-base font-bold text-white">
+            <GlassCard as="section">
+              <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 Momentum Rank History (Monthly)
               </h3>
-              <p className="mb-3 text-xs text-stone-400">
+              <p className="mb-3 text-xs text-stone-600 dark:text-stone-400">
                 Cross-sectional Nifty 200 rank at each month-end (#1 = strongest at top)
               </p>
               {!data.rank_history?.length ? (
@@ -414,26 +450,26 @@ export default function StockDetail() {
                       data={data.rank_history}
                       margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                       <XAxis
                         dataKey="date"
-                        tick={{ fill: "#a8a29e", fontSize: 11 }}
+                        tick={chart.axisTick}
+                        axisLine={chart.axisLine}
+                        tickLine={false}
                         tickFormatter={(v) => v.slice(2, 7)}
                       />
                       <YAxis
                         reversed
                         domain={[1, "dataMax"]}
-                        tick={{ fill: "#a8a29e", fontSize: 11 }}
+                        tick={chart.axisTick}
+                        axisLine={chart.axisLine}
+                        tickLine={false}
                         tickFormatter={(v) => `#${v}`}
                       />
-                      <ReferenceLine y={20} stroke="#34d399" strokeDasharray="4 4" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#141220",
-                          borderColor: "rgba(255,255,255,0.12)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
+                      <ReferenceLine y={20} stroke={chart.colors.positive} strokeDasharray="4 4" />
+                      <RechartsTooltip
+                        contentStyle={chart.tooltipStyle}
+                        labelStyle={chart.tooltipLabelStyle}
                         formatter={(val, name) => [
                           name === "Rank" ? `#${val}` : Number(val).toFixed(3),
                           name,
@@ -443,22 +479,24 @@ export default function StockDetail() {
                         type="monotone"
                         dataKey="rank"
                         name="Rank"
-                        stroke="#F0867C"
+                        stroke={chart.colors.main}
                         strokeWidth={2.25}
-                        dot={{ r: 3, fill: "#F0867C" }}
+                        dot={{ r: 3, fill: chart.colors.main }}
+                        isAnimationActive={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               )}
-            </section>
+            </GlassCard>
 
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+            <GlassCard as="section">
               <div className="mb-3 flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-[#F0867C]" />
-                <h3 className="font-display text-base font-bold text-white">
+                <Calculator className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
+                <h3 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                   How This Score Was Calculated
                 </h3>
+                <Tooltip content="Uses only adjusted closing prices up to the selected as-of date (zero look-ahead)." />
               </div>
 
               {!breakdown?.eligible ? (
@@ -468,8 +506,8 @@ export default function StockDetail() {
                 />
               ) : (
                 <div className="space-y-4 text-sm">
-                  <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+                  <Card variant="well" padding="p-3.5">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                       Step 1 · Momentum Return ({breakdown.lookback_days}d − {breakdown.skip_days}d)
                     </div>
                     <MathFormula
@@ -480,20 +518,24 @@ export default function StockDetail() {
                         2
                       )}} - 1 = ${(breakdown.momentum_12_1 * 100).toFixed(2)}\\%`}
                     />
-                    <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-stone-400">
+                    <div className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-stone-600 dark:text-stone-400">
                       <span>
-                        <strong className="text-stone-200">t−{breakdown.lookback_days}</strong> ({breakdown.date_252_ago}):{" "}
-                        {formatINR(breakdown.price_252_ago)}
+                        <strong className="text-stone-900 dark:text-stone-200">
+                          t−{breakdown.lookback_days}
+                        </strong>{" "}
+                        ({breakdown.date_252_ago}): {formatINR(breakdown.price_252_ago)}
                       </span>
                       <span>
-                        <strong className="text-stone-200">t−{breakdown.skip_days}</strong> ({breakdown.date_21_ago}):{" "}
-                        {formatINR(breakdown.price_21_ago)}
+                        <strong className="text-stone-900 dark:text-stone-200">
+                          t−{breakdown.skip_days}
+                        </strong>{" "}
+                        ({breakdown.date_21_ago}): {formatINR(breakdown.price_21_ago)}
                       </span>
                     </div>
-                  </div>
+                  </Card>
 
-                  <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+                  <Card variant="well" padding="p-3.5">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                       Step 2 · Annualised Daily Volatility
                     </div>
                     <MathFormula
@@ -502,10 +544,10 @@ export default function StockDetail() {
                         breakdown.volatility_ann * 100
                       ).toFixed(2)}\\%`}
                     />
-                  </div>
+                  </Card>
 
-                  <div className="rounded-xl border border-[#F0867C]/30 bg-[#F0867C]/[0.06] p-3.5">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-[#F0867C]">
+                  <Card variant="accent" padding="p-3.5">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-brand-plum dark:text-brand-coral">
                       Step 3 · Volatility-Adjusted Score &amp; Rank
                     </div>
                     <MathFormula
@@ -516,17 +558,23 @@ export default function StockDetail() {
                         4
                       )}} = ${breakdown.score.toFixed(4)}`}
                     />
-                    <div className="mt-1 text-xs text-stone-300">
-                      Ranks <strong className="text-white">#{breakdown.rank}</strong> out of{" "}
-                      <strong className="text-white">{breakdown.universe_size}</strong> eligible Nifty 200 stocks as of{" "}
-                      {breakdown.as_of}.
+                    <div className="mt-1 text-xs text-stone-700 dark:text-stone-300">
+                      Ranks{" "}
+                      <strong className="text-stone-900 dark:text-stone-100">
+                        #{breakdown.rank}
+                      </strong>{" "}
+                      out of{" "}
+                      <strong className="text-stone-900 dark:text-stone-100">
+                        {breakdown.universe_size}
+                      </strong>{" "}
+                      eligible Nifty 200 stocks as of {breakdown.as_of}.
                     </div>
-                  </div>
+                  </Card>
                 </div>
               )}
-            </section>
+            </GlassCard>
           </div>
-        </div>
+        </PageContainer>
       )}
     </AppLayout>
   );

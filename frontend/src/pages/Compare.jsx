@@ -13,18 +13,35 @@ import {
   YAxis,
 } from "recharts";
 import AppLayout from "../components/AppLayout";
-import { SkeletonChart, SkeletonTable } from "../components/Skeleton";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import TrendBadge from "../components/TrendBadge";
+import {
+  DisclaimerBanner,
+  EmptyState,
+  ErrorState,
+  GlassCard,
+  PageContainer,
+  SegmentedControl,
+  Select,
+  SkeletonChart,
+  SkeletonTable,
+  TrendBadge,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useCachedApi } from "../hooks/useCachedApi";
 import { api } from "../lib/api";
+import { useChartTheme } from "../lib/chartTheme";
 import { formatINR, formatPct, shortSymbol } from "../lib/format";
 
-const LINE_COLORS = ["#F0867C", "#34d399", "#38bdf8", "#fbbf24"];
+const RANGES = [
+  { value: "1y", label: "1Y" },
+  { value: "3y", label: "3Y" },
+  { value: "5y", label: "5Y" },
+];
 
 export default function Compare() {
   const { token } = useAuth();
+  const chart = useChartTheme();
+  const lineColors = chart.colors.series;
+
   const { data: screener, loading: screenerLoading, error: screenerError, refetch } =
     useCachedApi("/api/screener");
 
@@ -201,30 +218,36 @@ export default function Compare() {
       subtitle="Rebased performance, relative strength vs Nifty 200, and side-by-side metrics for 2–4 stocks"
     >
       {screenerLoading && !screener ? (
-        <div className="space-y-6">
+        <PageContainer>
           <SkeletonChart height={320} />
           <SkeletonTable rows={5} cols={5} />
-        </div>
+        </PageContainer>
       ) : screenerError && !screener ? (
-        <ErrorState title="Could not load universe" message={screenerError} onRetry={refetch} />
+        <ErrorState
+          title="Could not load universe"
+          message={screenerError}
+          onRetry={refetch}
+        />
       ) : (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-4 shadow-lg">
+        <PageContainer>
+          <DisclaimerBanner />
+
+          <GlassCard padding="p-4" className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               {selected.map((sym, idx) => (
                 <span
                   key={sym}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white"
+                  className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-surface-cream/90 px-3 py-1.5 text-xs font-semibold text-stone-900 dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-100"
                 >
                   <span
                     className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: LINE_COLORS[idx % LINE_COLORS.length] }}
+                    style={{ backgroundColor: lineColors[idx % lineColors.length] }}
                   />
                   {shortSymbol(sym)}
                   <button
                     type="button"
                     onClick={() => removeSymbol(sym)}
-                    className="text-stone-400 hover:text-white"
+                    className="text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-brand-coral"
                     aria-label={`Remove ${sym}`}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -233,10 +256,12 @@ export default function Compare() {
               ))}
 
               {selected.length < 4 && (
-                <select
+                <Select
+                  aria-label="Add stock to compare"
                   value={pickerVal}
                   onChange={(e) => addSymbol(e.target.value)}
-                  className="rounded-xl border border-white/10 bg-[#07080F] px-3 py-1.5 text-xs text-white focus:border-[#F0867C] focus:outline-none"
+                  className="w-56"
+                  selectClassName="py-1.5 text-xs"
                 >
                   <option value="">+ Add stock ({selected.length}/4)</option>
                   {allStocks
@@ -246,25 +271,17 @@ export default function Compare() {
                         {shortSymbol(s.symbol)} — {s.name}
                       </option>
                     ))}
-                </select>
+                </Select>
               )}
             </div>
 
-            <div className="flex rounded-xl border border-white/10 bg-[#07080F] p-0.5">
-              {["1y", "3y", "5y"].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRange(r)}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold uppercase transition ${
-                    range === r ? "bg-[#8C4570] text-white" : "text-stone-400 hover:text-white"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+            <SegmentedControl
+              size="xs"
+              value={range}
+              onChange={setRange}
+              options={RANGES}
+            />
+          </GlassCard>
 
           {selected.length < 2 ? (
             <EmptyState
@@ -279,110 +296,130 @@ export default function Compare() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                  <h2 className="font-display text-base font-bold text-white">
+                <GlassCard as="section">
+                  <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                     Normalized Performance (Base = 100)
                   </h2>
-                  <p className="mb-4 text-xs text-stone-400">
+                  <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
                     Cumulative return over the {range.toUpperCase()} window
                   </p>
                   <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={normalizedChart} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <LineChart
+                        data={normalizedChart}
+                        margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                         <XAxis
                           dataKey="date"
-                          tick={{ fill: "#a8a29e", fontSize: 11 }}
+                          tick={chart.axisTick}
+                          axisLine={chart.axisLine}
+                          tickLine={false}
                           tickFormatter={(v) => v.slice(2, 7)}
                           minTickGap={30}
                         />
-                        <YAxis tick={{ fill: "#a8a29e", fontSize: 11 }} />
-                        <ReferenceLine y={100} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "#141220",
-                            borderColor: "rgba(255,255,255,0.12)",
-                            borderRadius: "12px",
-                            fontSize: "12px",
-                          }}
+                        <YAxis
+                          tick={chart.axisTick}
+                          axisLine={chart.axisLine}
+                          tickLine={false}
                         />
-                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        <ReferenceLine
+                          y={100}
+                          stroke={chart.referenceLine}
+                          strokeDasharray="4 4"
+                        />
+                        <Tooltip
+                          contentStyle={chart.tooltipStyle}
+                          labelStyle={chart.tooltipLabelStyle}
+                        />
+                        <Legend wrapperStyle={chart.legendStyle} />
                         {selected.map((sym, idx) => (
                           <Line
                             key={sym}
                             type="monotone"
                             dataKey={sym}
                             name={shortSymbol(sym)}
-                            stroke={LINE_COLORS[idx % LINE_COLORS.length]}
+                            stroke={lineColors[idx % lineColors.length]}
                             strokeWidth={2}
                             dot={false}
+                            isAnimationActive={false}
                           />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                </section>
+                </GlassCard>
 
-                <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
-                  <h2 className="font-display text-base font-bold text-white">
+                <GlassCard as="section">
+                  <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                     Relative Strength vs Nifty 200 (Base = 100)
                   </h2>
-                  <p className="mb-4 text-xs text-stone-400">
+                  <p className="mb-4 text-xs text-stone-600 dark:text-stone-400">
                     Rising line indicates outperformance relative to the ^CNX200 benchmark
                   </p>
                   <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={rsChart} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <LineChart
+                        data={rsChart}
+                        margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
                         <XAxis
                           dataKey="date"
-                          tick={{ fill: "#a8a29e", fontSize: 11 }}
+                          tick={chart.axisTick}
+                          axisLine={chart.axisLine}
+                          tickLine={false}
                           tickFormatter={(v) => v.slice(2, 7)}
                           minTickGap={30}
                         />
-                        <YAxis tick={{ fill: "#a8a29e", fontSize: 11 }} />
-                        <ReferenceLine y={100} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "#141220",
-                            borderColor: "rgba(255,255,255,0.12)",
-                            borderRadius: "12px",
-                            fontSize: "12px",
-                          }}
+                        <YAxis
+                          tick={chart.axisTick}
+                          axisLine={chart.axisLine}
+                          tickLine={false}
                         />
-                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        <ReferenceLine
+                          y={100}
+                          stroke={chart.referenceLine}
+                          strokeDasharray="4 4"
+                        />
+                        <Tooltip
+                          contentStyle={chart.tooltipStyle}
+                          labelStyle={chart.tooltipLabelStyle}
+                        />
+                        <Legend wrapperStyle={chart.legendStyle} />
                         {selected.map((sym, idx) => (
                           <Line
                             key={sym}
                             type="monotone"
                             dataKey={sym}
                             name={shortSymbol(sym)}
-                            stroke={LINE_COLORS[idx % LINE_COLORS.length]}
+                            stroke={lineColors[idx % lineColors.length]}
                             strokeWidth={2}
                             dot={false}
+                            isAnimationActive={false}
                           />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                </section>
+                </GlassCard>
               </div>
 
-              <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#12131F]/90 shadow-lg">
+              <GlassCard as="section" padding="p-0" className="overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[680px] border-collapse text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10 bg-white/[0.03] text-xs font-semibold uppercase tracking-wider text-stone-400">
+                    <thead className="bg-stone-100/80 dark:bg-stone-800/50">
+                      <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:text-stone-400">
                         <th className="px-4 py-3.5">Metric (Best Highlighted)</th>
                         {selected.map((sym, idx) => (
                           <th key={sym} className="px-4 py-3.5 text-right">
                             <Link
                               to={`/stock/${encodeURIComponent(sym)}`}
-                              className="inline-flex items-center gap-1.5 text-white hover:text-[#F0867C]"
+                              className="inline-flex items-center gap-1.5 text-stone-900 hover:text-brand-plum dark:text-stone-100 dark:hover:text-brand-coral"
                             >
                               <span
                                 className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: LINE_COLORS[idx % LINE_COLORS.length] }}
+                                style={{ backgroundColor: lineColors[idx % lineColors.length] }}
                               />
                               {shortSymbol(sym)}
                             </Link>
@@ -390,14 +427,19 @@ export default function Compare() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.06]">
+                    <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/80">
                       {metricRows.map((row) => {
                         const vals = selected
                           .map((sym) => ({
                             sym,
                             num: analyses[sym] ? row.val(analyses[sym]) : null,
                           }))
-                          .filter((x) => x.num !== null && x.num !== undefined && !Number.isNaN(x.num));
+                          .filter(
+                            (x) =>
+                              x.num !== null &&
+                              x.num !== undefined &&
+                              !Number.isNaN(x.num)
+                          );
 
                         let bestVal = null;
                         if (row.bestMode && vals.length > 0) {
@@ -408,8 +450,11 @@ export default function Compare() {
                         }
 
                         return (
-                          <tr key={row.label} className="hover:bg-white/[0.02]">
-                            <td className="px-4 py-3 font-medium text-stone-400">
+                          <tr
+                            key={row.label}
+                            className="transition-colors hover:bg-stone-100/60 dark:hover:bg-stone-800/40"
+                          >
+                            <td className="px-4 py-3 font-medium text-stone-600 dark:text-stone-400">
                               {row.label}
                             </td>
                             {selected.map((sym) => {
@@ -424,13 +469,13 @@ export default function Compare() {
                               return (
                                 <td
                                   key={sym}
-                                  className="px-4 py-3 text-right tabular-nums text-white"
+                                  className="px-4 py-3 text-right tabular-nums text-stone-900 dark:text-stone-100"
                                 >
                                   {item ? (
                                     <span
                                       className={
                                         isBest
-                                          ? "inline-block rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 font-bold text-emerald-300"
+                                          ? "inline-block rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 font-bold text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-300"
                                           : ""
                                       }
                                     >
@@ -448,10 +493,10 @@ export default function Compare() {
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </GlassCard>
             </>
           )}
-        </div>
+        </PageContainer>
       )}
     </AppLayout>
   );

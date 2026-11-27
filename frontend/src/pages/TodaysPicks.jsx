@@ -4,7 +4,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
-  Info,
   Layers,
   RefreshCw,
   Search,
@@ -12,12 +11,27 @@ import {
   Star,
 } from "lucide-react";
 import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
 import PipelineFunnel from "../components/PipelineFunnel";
-import { SkeletonCard, SkeletonTable } from "../components/Skeleton";
 import Sparkline from "../components/Sparkline";
-import { EmptyState, ErrorState } from "../components/StateViews";
-import TrendBadge from "../components/TrendBadge";
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  DisclaimerBanner,
+  EmptyState,
+  ErrorState,
+  GlassCard,
+  Input,
+  PageContainer,
+  PageHeader,
+  SegmentedControl,
+  Select,
+  SkeletonCard,
+  SkeletonTable,
+  Tooltip,
+  TrendBadge,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { usePipelineParams } from "../context/PipelineContext";
 import { useWatchlist } from "../hooks/useWatchlist";
@@ -29,11 +43,6 @@ function formatMcap(cr) {
   if (cr >= 100000) return `₹${(cr / 100000).toFixed(2)}L Cr`;
   return `₹${Math.round(cr).toLocaleString("en-IN")} Cr`;
 }
-
-const ACTION_BADGE = {
-  BUY: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
-  HOLD: "border-sky-500/35 bg-sky-500/15 text-sky-300",
-};
 
 export default function TodaysPicks() {
   const { token } = useAuth();
@@ -116,7 +125,11 @@ export default function TodaysPicks() {
               toggleWatchlist(r.symbol);
             }}
             aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}
-            className={watched ? "text-amber-400" : "text-stone-600 hover:text-stone-300"}
+            className={`rounded-lg p-1 transition ${
+              watched
+                ? "text-amber-500 dark:text-brand-gold"
+                : "text-stone-400 hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300"
+            }`}
           >
             <Star className="h-4 w-4" fill={watched ? "currentColor" : "none"} />
           </button>
@@ -128,7 +141,11 @@ export default function TodaysPicks() {
       label: "Rank",
       sortable: true,
       defaultDir: "asc",
-      render: (r) => <span className="font-bold text-white">#{r.rank}</span>,
+      render: (r) => (
+        <span className="font-bold tabular-nums text-stone-900 dark:text-stone-100">
+          #{r.rank}
+        </span>
+      ),
     },
     {
       key: "symbol",
@@ -137,8 +154,12 @@ export default function TodaysPicks() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
-          <div className="max-w-[180px] truncate text-xs text-stone-400">{r.name}</div>
+          <div className="font-semibold text-stone-900 dark:text-stone-100">
+            {shortSymbol(r.symbol)}
+          </div>
+          <div className="max-w-[180px] truncate text-xs text-stone-500 dark:text-stone-400">
+            {r.name}
+          </div>
         </div>
       ),
     },
@@ -147,13 +168,9 @@ export default function TodaysPicks() {
       label: "Action",
       sortable: true,
       render: (r) => (
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-            ACTION_BADGE[r.action] || ACTION_BADGE.HOLD
-          }`}
-        >
+        <Badge variant={r.action === "BUY" ? "emerald" : "plum"} size="xs">
           {r.action}
-        </span>
+        </Badge>
       ),
     },
     {
@@ -162,7 +179,7 @@ export default function TodaysPicks() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className="font-display font-bold text-[#F0867C]">
+        <span className="font-display font-bold text-brand-plum dark:text-brand-coral">
           {r.score != null ? r.score.toFixed(3) : "—"}
         </span>
       ),
@@ -173,7 +190,13 @@ export default function TodaysPicks() {
       sortable: true,
       align: "right",
       render: (r) => (
-        <span className={(r.ret_12_1m ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}>
+        <span
+          className={`font-semibold ${
+            (r.ret_12_1m ?? 0) >= 0
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-red-600 dark:text-red-400"
+          }`}
+        >
           {formatPct(r.ret_12_1m, 1)}
         </span>
       ),
@@ -183,7 +206,11 @@ export default function TodaysPicks() {
       label: "Mkt Cap",
       sortable: true,
       align: "right",
-      render: (r) => <span className="text-xs text-stone-300">{formatMcap(r.market_cap_cr)}</span>,
+      render: (r) => (
+        <span className="text-xs text-stone-600 dark:text-stone-300">
+          {formatMcap(r.market_cap_cr)}
+        </span>
+      ),
     },
     {
       key: "trend",
@@ -202,7 +229,7 @@ export default function TodaysPicks() {
       label: "Why Picked",
       sortable: false,
       render: (r) => (
-        <span className="block max-w-[260px] text-xs text-stone-300">
+        <span className="block max-w-[260px] text-xs text-stone-600 dark:text-stone-300">
           {r.reason_picked}
         </span>
       ),
@@ -217,8 +244,12 @@ export default function TodaysPicks() {
       defaultDir: "asc",
       render: (r) => (
         <div>
-          <div className="font-semibold text-white">{shortSymbol(r.symbol)}</div>
-          <div className="max-w-[180px] truncate text-xs text-stone-400">{r.name}</div>
+          <div className="font-semibold text-stone-900 dark:text-stone-100">
+            {shortSymbol(r.symbol)}
+          </div>
+          <div className="max-w-[180px] truncate text-xs text-stone-500 dark:text-stone-400">
+            {r.name}
+          </div>
         </div>
       ),
     },
@@ -250,9 +281,9 @@ export default function TodaysPicks() {
       label: "Removal Reason",
       sortable: true,
       render: (r) => (
-        <span className="inline-block rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-200">
+        <Badge variant="red" size="xs" className="whitespace-normal text-left">
           {r.removal_reason}
-        </span>
+        </Badge>
       ),
     },
   ];
@@ -269,49 +300,53 @@ export default function TodaysPicks() {
       }
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/strategy"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-[#F0867C]/50 hover:text-white"
-          >
+          <Button variant="secondary" size="sm" to="/strategy">
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Tune Rules
-          </Link>
-          <Link
-            to="/backtest?autorun=1"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#8C4570] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#7A3B61]"
-          >
+            <span className="hidden sm:inline">Tune Rules</span>
+          </Button>
+          <Button variant="primary" size="sm" to="/backtest?autorun=1">
             <BarChart3 className="h-3.5 w-3.5" />
-            Backtest
-          </Link>
-          <button
-            type="button"
+            <span>Backtest</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={runNow}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30 disabled:opacity-50"
+            aria-label="Refresh picks"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-          </button>
+          </Button>
         </div>
       }
     >
-      <div className="space-y-6">
-        {/* Educational Disclaimer */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-2.5 text-xs text-amber-100/90">
-          <div className="flex items-center gap-2">
-            <Info className="h-4 w-4 shrink-0 text-amber-300" />
-            <span>
-              <strong>Educational Tool — Not Investment Advice.</strong> Picks are generated mechanically from historical prices and cached market-cap snapshots.
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] text-amber-200/80">
-            <span>Method: <strong>{params.method}</strong></span>
-            <span>Lookback: <strong>{params.lookback_days}d / {params.skip_days}d</strong></span>
-            <span>Min Cap: <strong>₹{params.min_market_cap_cr.toLocaleString("en-IN")} Cr</strong></span>
-            <Link to="/screener" className="underline hover:text-white">
-              Open Screener
-            </Link>
-          </div>
-        </div>
+      <PageContainer>
+        <DisclaimerBanner
+          description="Picks are generated mechanically from historical prices and cached market-cap snapshots."
+          right={
+            <>
+              <span>
+                Method: <strong>{params.method}</strong>
+              </span>
+              <span>
+                Lookback:{" "}
+                <strong>
+                  {params.lookback_days}d / {params.skip_days}d
+                </strong>
+              </span>
+              <span>
+                Min Cap:{" "}
+                <strong>₹{params.min_market_cap_cr.toLocaleString("en-IN")} Cr</strong>
+              </span>
+              <Link
+                to="/screener"
+                className="font-semibold text-brand-plum underline hover:text-brand-plumHover dark:text-brand-coral dark:hover:text-brand-gold"
+              >
+                Open Screener
+              </Link>
+            </>
+          }
+        />
 
         {loading && !data ? (
           <div className="space-y-6">
@@ -321,57 +356,44 @@ export default function TodaysPicks() {
         ) : error && !data ? (
           <ErrorState title="Pipeline failed to run" message={error} onRetry={runNow} />
         ) : !data ? (
-          <EmptyState title="No picks available" description="Run the pipeline to generate picks." />
+          <EmptyState
+            title="No picks available"
+            description="Run the pipeline to generate picks."
+          />
         ) : (
           <>
             <PipelineFunnel stages={data.stages} />
 
             {/* Selected portfolio */}
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-display text-lg font-bold text-white">
-                    Selected Portfolio ({data.selected.length} Stocks · Equal Weight{" "}
-                    {data.selected.length > 0
-                      ? `${(100 / data.selected.length).toFixed(2)}%`
-                      : "0%"}
-                    )
-                  </h2>
-                  <p className="text-xs text-stone-400">
-                    Click any stock for full technical indicators, RSI, and KaTeX score math
-                  </p>
-                </div>
-
-                <div className="flex rounded-xl border border-white/10 bg-[#12131F] p-0.5 text-xs">
-                  {["cards", "table"].map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setViewMode(mode)}
-                      className={`rounded-lg px-3 py-1 font-semibold capitalize transition ${
-                        viewMode === mode
-                          ? "bg-[#8C4570] text-white"
-                          : "text-stone-400 hover:text-white"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <section className="min-w-0 space-y-4">
+              <PageHeader
+                title={`Selected Portfolio (${data.selected.length} Stocks · Equal Weight ${
+                  data.selected.length > 0
+                    ? `${(100 / data.selected.length).toFixed(2)}%`
+                    : "0%"
+                })`}
+                subtitle="Click any stock for full technical indicators, RSI, and KaTeX score math"
+                actions={
+                  <SegmentedControl
+                    value={viewMode}
+                    onChange={setViewMode}
+                    options={[
+                      { value: "cards", label: "Cards" },
+                      { value: "table", label: "Table" },
+                    ]}
+                  />
+                }
+              />
 
               {!data.selected.length ? (
                 <EmptyState
                   title="No stocks passed all filters"
                   description="Relax one or more quality filters in Strategy Builder to select a portfolio."
                   action={
-                    <Link
-                      to="/strategy"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#8C4570] px-4 py-2 text-sm font-semibold text-white"
-                    >
+                    <Button variant="primary" size="md" to="/strategy">
                       Adjust Filters
                       <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    </Button>
                   }
                 />
               ) : viewMode === "table" ? (
@@ -381,6 +403,7 @@ export default function TodaysPicks() {
                   defaultSortKey="rank"
                   defaultSortDir="asc"
                   pageSize={25}
+                  stickyHeader
                   onRowClick={(r) => navigate(`/stock/${encodeURIComponent(r.symbol)}`)}
                 />
               ) : (
@@ -388,38 +411,39 @@ export default function TodaysPicks() {
                   {data.selected.map((stock) => {
                     const watched = isWatched(stock.symbol);
                     return (
-                      <div
+                      <GlassCard
                         key={stock.symbol}
-                        onClick={() => navigate(`/stock/${encodeURIComponent(stock.symbol)}`)}
+                        interactive
+                        padding="p-4"
                         role="button"
                         tabIndex={0}
+                        onClick={() => navigate(`/stock/${encodeURIComponent(stock.symbol)}`)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             navigate(`/stock/${encodeURIComponent(stock.symbol)}`);
                           }
                         }}
-                        className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-white/10 bg-[#12131F]/90 p-4 shadow-lg transition hover:border-[#F0867C]/45 hover:bg-[#181626]"
+                        className="group flex min-w-0 flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[11px] font-bold text-[#F0867C]">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="plum" size="xs">
                                   #{stock.rank}
-                                </span>
-                                <span className="truncate font-display text-base font-bold text-white">
+                                </Badge>
+                                <span className="truncate font-display text-base font-bold text-stone-900 dark:text-stone-100">
                                   {shortSymbol(stock.symbol)}
                                 </span>
-                                <span
-                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                                    ACTION_BADGE[stock.action] || ACTION_BADGE.HOLD
-                                  }`}
+                                <Badge
+                                  variant={stock.action === "BUY" ? "emerald" : "plum"}
+                                  size="xs"
                                 >
                                   {stock.action}
-                                </span>
+                                </Badge>
                               </div>
-                              <p className="mt-1 truncate text-xs text-stone-400">
+                              <p className="mt-1 truncate text-xs text-stone-600 dark:text-stone-400">
                                 {stock.name} · {stock.sector}
                               </p>
                             </div>
@@ -430,10 +454,10 @@ export default function TodaysPicks() {
                                 e.stopPropagation();
                                 toggleWatchlist(stock.symbol);
                               }}
-                              className={`shrink-0 rounded-lg p-1 ${
+                              className={`shrink-0 rounded-lg p-1 transition ${
                                 watched
-                                  ? "text-amber-400"
-                                  : "text-stone-600 hover:text-stone-300"
+                                  ? "text-amber-500 dark:text-brand-gold"
+                                  : "text-stone-400 hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300"
                               }`}
                               aria-label="Toggle watchlist"
                             >
@@ -442,32 +466,32 @@ export default function TodaysPicks() {
                           </div>
 
                           <div className="mt-3 flex items-center justify-between gap-2">
-                            <div>
-                              <div className="text-lg font-bold text-white">
+                            <div className="min-w-0">
+                              <div className="text-lg font-bold tabular-nums text-stone-900 dark:text-stone-100">
                                 {formatINR(stock.last_price)}
                               </div>
-                              <div className="text-[11px] text-stone-400">
+                              <div className="text-[11px] text-stone-600 dark:text-stone-400">
                                 Cap: {formatMcap(stock.market_cap_cr)}
                               </div>
                             </div>
-                            <div className="w-24">
+                            <div className="w-24 shrink-0">
                               <Sparkline data={stock.sparkline} height={34} />
                             </div>
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-xs">
+                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-stone-200/80 pt-2.5 text-xs dark:border-stone-800">
                             <TrendBadge trend={stock.trend} />
-                            <span className="font-display font-bold text-[#F0867C]">
+                            <span className="font-display font-bold tabular-nums text-brand-plum dark:text-brand-coral">
                               Score {stock.score != null ? stock.score.toFixed(2) : "—"}
                             </span>
                           </div>
                         </div>
 
-                        <p className="mt-2.5 flex items-center justify-between gap-1 text-[11px] leading-snug text-stone-400">
+                        <p className="mt-2.5 flex items-center justify-between gap-1 text-[11px] leading-snug text-stone-600 dark:text-stone-400">
                           <span className="line-clamp-2">{stock.reason_picked}</span>
-                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-stone-500 group-hover:text-[#F0867C]" />
+                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-stone-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-plum dark:text-stone-500 dark:group-hover:text-brand-coral" />
                         </p>
-                      </div>
+                      </GlassCard>
                     );
                   })}
                 </div>
@@ -475,133 +499,158 @@ export default function TodaysPicks() {
             </section>
 
             {/* Buy / Sell / Hold changes since last month */}
-            <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+            <GlassCard as="section">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 className="font-display text-base font-bold text-white">
-                    Rebalance Changes Since Last Month
-                  </h2>
-                  <p className="text-xs text-stone-400">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
+                      Rebalance Changes Since Last Month
+                    </h2>
+                    <Tooltip content="Compares today's top-N survivors with the portfolio from the prior month-end close." />
+                  </div>
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
                     Comparing {data.as_of} against prior month-end ({data.prev_rebalance_date || "N/A"})
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] p-4">
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
+                <Card
+                  variant="well"
+                  padding="p-4"
+                  className="border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/25 dark:bg-emerald-500/[0.06]"
+                >
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                     Buy · New Entries ({changes.buy.length})
                   </div>
                   {!changes.buy.length ? (
-                    <p className="text-xs text-stone-400">No new additions this month.</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                      No new additions this month.
+                    </p>
                   ) : (
                     <div className="space-y-1.5">
                       {changes.buy.map((b) => (
                         <Link
                           key={b.symbol}
                           to={`/stock/${encodeURIComponent(b.symbol)}`}
-                          className="flex items-center justify-between rounded-lg bg-black/25 px-2.5 py-1.5 text-xs hover:bg-black/45"
+                          className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
                         >
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-stone-900 dark:text-stone-100">
                             #{b.rank} {shortSymbol(b.symbol)}
                           </span>
-                          <span className="text-emerald-300">
+                          <span className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
                             {b.score != null ? b.score.toFixed(2) : "—"}
                           </span>
                         </Link>
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
 
-                <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.05] p-4">
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-rose-300">
+                <Card
+                  variant="well"
+                  padding="p-4"
+                  className="border-red-200 bg-red-50/70 dark:border-red-500/25 dark:bg-red-500/[0.06]"
+                >
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300">
                     Sell · Exits ({changes.sell.length})
                   </div>
                   {!changes.sell.length ? (
-                    <p className="text-xs text-stone-400">No exits since last month.</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                      No exits since last month.
+                    </p>
                   ) : (
                     <div className="space-y-1.5">
                       {changes.sell.map((s) => (
                         <Link
                           key={s.symbol}
                           to={`/stock/${encodeURIComponent(s.symbol)}`}
-                          className="block rounded-lg bg-black/25 px-2.5 py-1.5 text-xs hover:bg-black/45"
+                          className="block rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
                         >
-                          <div className="flex justify-between font-semibold text-white">
+                          <div className="flex justify-between font-semibold text-stone-900 dark:text-stone-100">
                             <span>{shortSymbol(s.symbol)}</span>
-                            <span className="text-stone-400">was #{s.prev_rank}</span>
+                            <span className="text-stone-500 dark:text-stone-400">
+                              was #{s.prev_rank}
+                            </span>
                           </div>
-                          <div className="truncate text-[11px] text-rose-200/80">
+                          <div className="truncate text-[11px] text-red-700/90 dark:text-red-300/85">
                             {s.reason}
                           </div>
                         </Link>
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
 
-                <div className="rounded-xl border border-sky-500/25 bg-sky-500/[0.05] p-4">
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-sky-300">
+                <Card
+                  variant="well"
+                  padding="p-4"
+                  className="border-brand-plum/25 bg-brand-plum/[0.06] dark:border-brand-mauve/30 dark:bg-brand-mauve/[0.07]"
+                >
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-plum dark:text-brand-mauve">
                     Hold · Retained ({changes.hold.length})
                   </div>
                   {!changes.hold.length ? (
-                    <p className="text-xs text-stone-400">No retained holdings.</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">
+                      No retained holdings.
+                    </p>
                   ) : (
                     <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                       {changes.hold.map((h) => (
                         <Link
                           key={h.symbol}
                           to={`/stock/${encodeURIComponent(h.symbol)}`}
-                          className="flex items-center justify-between rounded-lg bg-black/25 px-2.5 py-1.5 text-xs hover:bg-black/45"
+                          className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1.5 text-xs transition hover:bg-white dark:bg-stone-900/70 dark:hover:bg-stone-900"
                         >
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-stone-900 dark:text-stone-100">
                             #{h.rank} {shortSymbol(h.symbol)}
                           </span>
-                          <span className="text-stone-400">prev #{h.prev_rank}</span>
+                          <span className="text-stone-500 dark:text-stone-400">
+                            prev #{h.prev_rank}
+                          </span>
                         </Link>
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
-            </section>
+            </GlassCard>
 
             {/* Excluded Stocks diagnostics */}
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-2 font-display text-lg font-bold text-white">
-                    <Layers className="h-4 w-4 text-[#F0867C]" />
+            <section className="min-w-0 space-y-4">
+              <PageHeader
+                title={
+                  <span className="inline-flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
                     Excluded Stocks ({filteredExcluded.length})
-                  </h2>
-                  <p className="text-xs text-stone-400">
-                    Every non-selected Nifty 500 stock with the exact filter or rank cutoff that removed it
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-500" />
-                    <input
+                  </span>
+                }
+                subtitle="Every non-selected Nifty 500 stock with the exact filter or rank cutoff that removed it"
+                actions={
+                  <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto">
+                    <Input
+                      icon={Search}
                       type="text"
                       value={exclSearch}
                       onChange={(e) => setExclSearch(e.target.value)}
+                      onClear={() => setExclSearch("")}
                       placeholder="Filter excluded or reason..."
-                      className="rounded-xl border border-white/10 bg-[#12131F] py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-stone-500 focus:border-[#F0867C] focus:outline-none"
+                      className="min-w-0 flex-1 sm:w-52 sm:flex-none"
+                      inputClassName="py-1.5 text-xs"
                     />
+                    <Select
+                      value={exclType}
+                      onChange={(e) => setExclType(e.target.value)}
+                      className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+                      selectClassName="py-1.5 text-xs"
+                    >
+                      <option value="failed_filters">Failed Quality Filters</option>
+                      <option value="ranked_out">Passed Filters, Outside Top N</option>
+                      <option value="all">All Excluded ({data.excluded.length})</option>
+                    </Select>
                   </div>
-                  <select
-                    value={exclType}
-                    onChange={(e) => setExclType(e.target.value)}
-                    className="rounded-xl border border-white/10 bg-[#12131F] px-3 py-1.5 text-xs text-white focus:border-[#F0867C] focus:outline-none"
-                  >
-                    <option value="failed_filters">Failed Quality Filters</option>
-                    <option value="ranked_out">Passed Filters, Outside Top N</option>
-                    <option value="all">All Excluded ({data.excluded.length})</option>
-                  </select>
-                </div>
-              </div>
+                }
+              />
 
               <DataTable
                 columns={excludedCols}
@@ -609,12 +658,13 @@ export default function TodaysPicks() {
                 defaultSortKey="symbol"
                 defaultSortDir="asc"
                 pageSize={15}
+                stickyHeader
                 onRowClick={(r) => navigate(`/stock/${encodeURIComponent(r.symbol)}`)}
               />
             </section>
           </>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -1,11 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, Filter, Play, RotateCcw, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Filter,
+  Play,
+  RotateCcw,
+  SlidersHorizontal,
+} from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import MathFormula from "../components/MathFormula";
 import PipelineFunnel from "../components/PipelineFunnel";
-import { SkeletonCard } from "../components/Skeleton";
-import { ErrorState } from "../components/StateViews";
+import {
+  Button,
+  Card,
+  ErrorState,
+  GlassCard,
+  PageContainer,
+  SegmentedControl,
+  SkeletonCard,
+  Slider,
+  Toggle,
+} from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { usePipelineParams } from "../context/PipelineContext";
 import { DEFAULT_PIPELINE_PARAMS } from "../lib/pipelineDefaults";
@@ -106,37 +122,29 @@ export default function StrategyLab() {
       subtitle="Configure quality filters, momentum formula, and portfolio rules — then run Today's Picks"
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-stone-200 hover:border-white/30"
-          >
+          <Button variant="secondary" size="sm" onClick={handleReset}>
             <RotateCcw className="h-3.5 w-3.5" />
-            Defaults
-          </button>
-          <button
-            type="button"
+            <span className="hidden sm:inline">Defaults</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setParams(draft);
               navigate("/backtest?autorun=1");
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:border-[#F0867C]/50"
           >
             <BarChart3 className="h-3.5 w-3.5" />
-            Backtest
-          </button>
-          <button
-            type="button"
-            onClick={handleRunAndOpenPicks}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-1.5 text-xs font-bold text-white shadow-lg transition hover:brightness-110"
-          >
+            <span className="hidden sm:inline">Backtest</span>
+          </Button>
+          <Button variant="primary" size="sm" onClick={handleRunAndOpenPicks}>
             <Play className="h-3.5 w-3.5" fill="currentColor" />
-            Run &amp; Open Today&apos;s Picks
-          </button>
+            <span>Run &amp; Open Today&apos;s Picks</span>
+          </Button>
         </div>
       }
     >
-      <div className="space-y-6">
+      <PageContainer>
         {/* Funnel Visual */}
         {loading && !preview ? (
           <SkeletonCard count={4} />
@@ -147,174 +155,124 @@ export default function StrategyLab() {
         )}
 
         {/* Section 1: Quality Filters */}
-        <section className="rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg">
+        <GlassCard as="section">
           <div className="mb-4 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[#F0867C]" />
-            <h2 className="font-display text-base font-bold text-white">
+            <Filter className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
+            <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
               1. Quality &amp; Liquidity Filters
             </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-white">Min Market Cap</span>
-                <span className="font-bold text-[#F0867C]">
-                  {draft.min_market_cap_cr > 0
-                    ? `₹${draft.min_market_cap_cr.toLocaleString("en-IN")} Cr`
-                    : "Off"}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={50000}
-                step={500}
-                value={draft.min_market_cap_cr}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, min_market_cap_cr: Number(e.target.value) }))
-                }
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-              />
-              <p className="mt-1.5 text-[11px] text-stone-400">
-                Removes smaller, higher-volatility companies below this market capitalization.
-              </p>
-            </div>
+            <Slider
+              label="Min Market Cap"
+              valueLabel={
+                draft.min_market_cap_cr > 0
+                  ? `₹${draft.min_market_cap_cr.toLocaleString("en-IN")} Cr`
+                  : "Off"
+              }
+              min={0}
+              max={50000}
+              step={500}
+              value={draft.min_market_cap_cr}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, min_market_cap_cr: Number(e.target.value) }))
+              }
+              description="Removes smaller, higher-volatility companies below this market capitalization."
+            />
 
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-white">Min 20D Avg Traded Value</span>
-                <span className="font-bold text-[#F0867C]">
-                  {draft.min_avg_traded_value_cr > 0
-                    ? `₹${draft.min_avg_traded_value_cr} Cr/day`
-                    : "Off"}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draft.min_avg_traded_value_cr}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, min_avg_traded_value_cr: Number(e.target.value) }))
-                }
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-              />
-              <p className="mt-1.5 text-[11px] text-stone-400">
-                Ensures sufficient daily liquidity (close × volume) so entries/exits have lower slippage.
-              </p>
-            </div>
+            <Slider
+              label="Min 20D Avg Traded Value"
+              valueLabel={
+                draft.min_avg_traded_value_cr > 0
+                  ? `₹${draft.min_avg_traded_value_cr} Cr/day`
+                  : "Off"
+              }
+              min={0}
+              max={100}
+              step={1}
+              value={draft.min_avg_traded_value_cr}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, min_avg_traded_value_cr: Number(e.target.value) }))
+              }
+              description="Ensures sufficient daily liquidity (close × volume) so entries/exits have lower slippage."
+            />
 
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-white">Minimum Share Price</span>
-                <span className="font-bold text-[#F0867C]">
-                  {draft.min_price > 0 ? `₹${draft.min_price}` : "Off"}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={500}
-                step={10}
-                value={draft.min_price}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, min_price: Number(e.target.value) }))
-                }
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-              />
-              <p className="mt-1.5 text-[11px] text-stone-400">
-                Avoids low-priced stocks where tick sizes create disproportionate percentage swings.
-              </p>
-            </div>
+            <Slider
+              label="Minimum Share Price"
+              valueLabel={draft.min_price > 0 ? `₹${draft.min_price}` : "Off"}
+              min={0}
+              max={500}
+              step={10}
+              value={draft.min_price}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, min_price: Number(e.target.value) }))
+              }
+              description="Avoids low-priced stocks where tick sizes create disproportionate percentage swings."
+            />
 
-            <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-white">Within % of 52-Week High</span>
-                <span className="font-bold text-[#F0867C]">
-                  {draft.max_pct_below_52w_high !== null && draft.max_pct_below_52w_high < 100
-                    ? `≤ ${draft.max_pct_below_52w_high}%`
-                    : "Disabled"}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={5}
-                max={100}
-                step={5}
-                value={draft.max_pct_below_52w_high ?? 100}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setDraft((p) => ({
-                    ...p,
-                    max_pct_below_52w_high: val >= 100 ? null : val,
-                  }));
-                }}
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-              />
-              <p className="mt-1.5 text-[11px] text-stone-400">
-                Keeps only leaders trading near their 52-week peak (100% disables this rule).
-              </p>
-            </div>
+            <Slider
+              label="Within % of 52-Week High"
+              valueLabel={
+                draft.max_pct_below_52w_high !== null && draft.max_pct_below_52w_high < 100
+                  ? `≤ ${draft.max_pct_below_52w_high}%`
+                  : "Disabled"
+              }
+              min={5}
+              max={100}
+              step={5}
+              value={draft.max_pct_below_52w_high ?? 100}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setDraft((p) => ({
+                  ...p,
+                  max_pct_below_52w_high: val >= 100 ? null : val,
+                }));
+              }}
+              description="Keeps only leaders trading near their 52-week peak (100% disables this rule)."
+            />
 
-            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white">Price Above 200-Day SMA</span>
-                <button
-                  type="button"
-                  onClick={() => setDraft((p) => ({ ...p, above_200dma: !p.above_200dma }))}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-                    draft.above_200dma
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                      : "bg-white/5 text-stone-400 border border-white/10"
-                  }`}
-                >
-                  {draft.above_200dma ? "Enabled" : "Off"}
-                </button>
-              </div>
-              <p className="mt-2 text-[11px] text-stone-400">
-                Requires long-term trend confirmation so rebounding bear-market stocks are excluded.
-              </p>
-            </div>
+            <Toggle
+              label="Price Above 200-Day SMA"
+              checked={draft.above_200dma}
+              onChange={(val) => setDraft((p) => ({ ...p, above_200dma: val }))}
+              description="Requires long-term trend confirmation so rebounding bear-market stocks are excluded."
+            />
 
-            <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#07080F] p-4">
+            <Card variant="well" padding="p-4" className="flex flex-col justify-between">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-white">Unknown Market Cap</span>
-                <div className="flex rounded-lg border border-white/10 bg-[#12131F] p-0.5 text-[11px]">
-                  {["exclude", "include"].map((pol) => (
-                    <button
-                      key={pol}
-                      type="button"
-                      onClick={() => setDraft((p) => ({ ...p, unknown_mcap_policy: pol }))}
-                      className={`rounded-md px-2.5 py-1 font-semibold capitalize ${
-                        draft.unknown_mcap_policy === pol
-                          ? "bg-[#8C4570] text-white"
-                          : "text-stone-400"
-                      }`}
-                    >
-                      {pol}
-                    </button>
-                  ))}
-                </div>
+                <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                  Unknown Market Cap
+                </span>
+                <SegmentedControl
+                  size="xs"
+                  value={draft.unknown_mcap_policy}
+                  onChange={(pol) =>
+                    setDraft((p) => ({ ...p, unknown_mcap_policy: pol }))
+                  }
+                  options={[
+                    { value: "exclude", label: "Exclude" },
+                    { value: "include", label: "Include" },
+                  ]}
+                />
               </div>
-              <p className="mt-2 text-[11px] text-stone-400">
+              <p className="mt-2 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
                 Controls whether stocks missing a cached yfinance market cap are excluded or kept.
               </p>
-            </div>
+            </Card>
           </div>
 
           {availableSectors.length > 0 && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-[#07080F] p-4">
+            <Card variant="well" padding="p-4" className="mt-4">
               <div className="mb-2 flex items-center justify-between text-xs">
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-stone-900 dark:text-stone-100">
                   Sector Exclusions ({draft.excluded_sectors.length} excluded)
                 </span>
                 {draft.excluded_sectors.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setDraft((p) => ({ ...p, excluded_sectors: [] }))}
-                    className="text-[#F0867C] hover:underline"
+                    className="font-semibold text-brand-plum hover:underline dark:text-brand-coral"
                   >
                     Clear exclusions
                   </button>
@@ -330,8 +288,8 @@ export default function StrategyLab() {
                       onClick={() => toggleSectorExclusion(sec)}
                       className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
                         excluded
-                          ? "border-rose-500/40 bg-rose-500/15 text-rose-300 line-through"
-                          : "border-white/10 bg-white/[0.03] text-stone-300 hover:border-white/25"
+                          ? "border-red-300 bg-red-50 text-red-700 line-through dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-300"
+                          : "border-stone-200 bg-white/80 text-stone-700 hover:border-brand-plum/50 dark:border-stone-700 dark:bg-stone-800/70 dark:text-stone-300 dark:hover:border-brand-coral/50"
                       }`}
                     >
                       {sec}
@@ -339,23 +297,25 @@ export default function StrategyLab() {
                   );
                 })}
               </div>
-            </div>
+            </Card>
           )}
-        </section>
+        </GlassCard>
 
         {/* Section 2 & 3: Momentum + Portfolio + KaTeX Live Math */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          <section className="space-y-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg xl:col-span-7">
+          <GlassCard as="section" className="space-y-4 xl:col-span-7">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-[#F0867C]" />
-              <h2 className="font-display text-base font-bold text-white">
+              <SlidersHorizontal className="h-4 w-4 text-brand-plum dark:text-brand-coral" />
+              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 2. Momentum &amp; Portfolio Settings
               </h2>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4 sm:col-span-2">
-                <span className="text-xs font-semibold text-white">Scoring Method</span>
+              <Card variant="well" padding="p-4" className="sm:col-span-2">
+                <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+                  Scoring Method
+                </span>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {[
                     { id: "vol_adjusted", label: "Vol-Adjusted (12-1M / σ)" },
@@ -368,141 +328,130 @@ export default function StrategyLab() {
                       onClick={() => setDraft((p) => ({ ...p, method: m.id }))}
                       className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                         draft.method === m.id
-                          ? "border-[#F0867C]/50 bg-[#8C4570]/45 text-white"
-                          : "border-white/10 bg-white/[0.03] text-stone-400 hover:text-white"
+                          ? "border-brand-plum/40 bg-brand-plum text-stone-50 shadow-sm dark:border-brand-coral/50 dark:bg-brand-plumDark"
+                          : "border-stone-200 bg-white/80 text-stone-700 hover:border-brand-plum/40 hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800/70 dark:text-stone-300 dark:hover:border-brand-coral dark:hover:text-stone-100"
                       }`}
                     >
                       {m.label}
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[11px] text-stone-400">
+                <p className="mt-2 text-[11px] text-stone-600 dark:text-stone-400">
                   Vol-adjusted favors steady compounders; Z-score blend combines 6-month and 12-month cross-sectional ranks.
                 </p>
-              </div>
+              </Card>
 
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-white">Lookback Horizon</span>
-                  <span className="font-bold text-[#F0867C]">{draft.lookback_days}d</span>
-                </div>
-                <input
-                  type="range"
-                  min={60}
-                  max={504}
-                  value={draft.lookback_days}
-                  onChange={(e) => {
-                    const lb = Number(e.target.value);
-                    setDraft((p) => ({
-                      ...p,
-                      lookback_days: lb,
-                      skip_days: Math.min(p.skip_days, lb - 1),
-                      min_history_days: Math.max(p.min_history_days, lb + Math.min(p.skip_days, lb - 1)),
-                    }));
-                  }}
-                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-                />
-                <p className="mt-1.5 text-[11px] text-stone-400">
-                  Trading days in the return lookback (252 ≈ 12 months).
-                </p>
-              </div>
+              <Slider
+                label="Lookback Horizon"
+                valueLabel={`${draft.lookback_days}d`}
+                min={60}
+                max={504}
+                value={draft.lookback_days}
+                onChange={(e) => {
+                  const lb = Number(e.target.value);
+                  setDraft((p) => ({
+                    ...p,
+                    lookback_days: lb,
+                    skip_days: Math.min(p.skip_days, lb - 1),
+                    min_history_days: Math.max(
+                      p.min_history_days,
+                      lb + Math.min(p.skip_days, lb - 1)
+                    ),
+                  }));
+                }}
+                description="Trading days in the return lookback (252 ≈ 12 months)."
+              />
 
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-white">Skip Recent Days</span>
-                  <span className="font-bold text-[#F0867C]">{effectiveSkip}d</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.min(63, draft.lookback_days - 1)}
-                  value={effectiveSkip}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, skip_days: Number(e.target.value) }))
-                  }
-                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-                />
-                <p className="mt-1.5 text-[11px] text-stone-400">
-                  Skips the latest month (21d) to avoid short-term reversal noise.
-                </p>
-              </div>
+              <Slider
+                label="Skip Recent Days"
+                valueLabel={`${effectiveSkip}d`}
+                min={0}
+                max={Math.min(63, draft.lookback_days - 1)}
+                value={effectiveSkip}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, skip_days: Number(e.target.value) }))
+                }
+                description="Skips the latest month (21d) to avoid short-term reversal noise."
+              />
 
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-4 sm:col-span-2">
-                <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-white">Portfolio Holdings (Top N)</span>
-                  <span className="font-bold text-[#F0867C]">
-                    {draft.top_n} stocks ({(100 / draft.top_n).toFixed(2)}% each)
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={5}
-                  max={50}
-                  value={draft.top_n}
-                  onChange={(e) => setDraft((p) => ({ ...p, top_n: Number(e.target.value) }))}
-                  className="mt-2 h-1.5 w-full cursor-pointer accent-[#F0867C]"
-                />
-                <p className="mt-1.5 text-[11px] text-stone-400">
-                  Fewer stocks concentrate conviction; more stocks diversify idiosyncratic single-name risk.
-                </p>
-              </div>
+              <Slider
+                label="Portfolio Holdings (Top N)"
+                valueLabel={`${draft.top_n} stocks (${(100 / draft.top_n).toFixed(2)}% each)`}
+                min={5}
+                max={50}
+                value={draft.top_n}
+                onChange={(e) => setDraft((p) => ({ ...p, top_n: Number(e.target.value) }))}
+                description="Fewer stocks concentrate conviction; more stocks diversify idiosyncratic single-name risk."
+                className="sm:col-span-2"
+              />
             </div>
-          </section>
+          </GlassCard>
 
           {/* Live KaTeX & Preview Top 5 */}
-          <section className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-[#12131F]/90 p-5 shadow-lg xl:col-span-5">
+          <GlassCard
+            as="section"
+            className="flex flex-col justify-between gap-4 xl:col-span-5"
+          >
             <div className="space-y-3">
-              <h2 className="font-display text-base font-bold text-white">
+              <h2 className="font-display text-base font-bold text-stone-900 dark:text-stone-100">
                 Live Pipeline Equations
               </h2>
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3">
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+              <Card variant="well" padding="p-3">
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Eligibility Gate
                 </div>
                 <MathFormula display math={filterFormula} />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3">
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+              </Card>
+              <Card variant="well" padding="p-3">
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
                   Ranking Score &amp; Weight
                 </div>
                 <MathFormula display math={scoreFormula} />
-              </div>
+              </Card>
             </div>
 
             {preview?.selected?.length > 0 && (
-              <div className="rounded-xl border border-white/10 bg-[#07080F] p-3.5">
+              <Card variant="well" padding="p-3.5">
                 <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-stone-900 dark:text-stone-100">
                     Live Top 5 Preview ({preview.as_of})
                   </span>
-                  {loading && <span className="text-[#F0867C]">Updating…</span>}
+                  {loading && (
+                    <span className="font-medium text-brand-plum dark:text-brand-coral">
+                      Updating…
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-1.5 text-xs">
                   {preview.selected.slice(0, 5).map((s) => (
                     <div key={s.symbol} className="flex items-center justify-between">
-                      <span className="text-stone-200">
-                        <strong className="text-[#F0867C]">#{s.rank}</strong> {shortSymbol(s.symbol)}
+                      <span className="font-medium text-stone-800 dark:text-stone-200">
+                        <strong className="text-brand-plum dark:text-brand-coral">
+                          #{s.rank}
+                        </strong>{" "}
+                        {shortSymbol(s.symbol)}
                       </span>
-                      <span className="tabular-nums text-stone-400">
+                      <span className="tabular-nums text-stone-600 dark:text-stone-400">
                         Score {s.score != null ? s.score.toFixed(2) : "—"}
                       </span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
 
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="lg"
               onClick={handleRunAndOpenPicks}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8C4570] to-[#F0867C] px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:brightness-110"
+              className="w-full"
             >
               Run Pipeline &amp; View Today&apos;s Picks
               <ArrowRight className="h-4 w-4" />
-            </button>
-          </section>
+            </Button>
+          </GlassCard>
         </div>
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }
