@@ -4,12 +4,107 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-canvas: #F5F2EA;
+  --bg-sidebar: rgba(255, 255, 255, 0.8);
+  --bg-surface: rgba(255, 255, 255, 0.85);
+  --bg-well: rgba(245, 242, 234, 0.78);
+  --border-subtle: rgba(231, 229, 228, 0.9);
+  --border-strong: #D6D3D1;
+  --text-primary: #1C1917;
+  --text-secondary: #44403C;
+  --text-muted: #57534E;
+  --brand-plum: #6E3559;
+  --brand-plum-hover: #5D2C4B;
+  --brand-coral: #F0867C;
+  --brand-gold: #E3C87D;
+  --brand-mauve: #C77FB0;
+}
+
+.dark {
+  --bg-canvas: #07080F;
+  --bg-sidebar: rgba(28, 25, 23, 0.82);
+  --bg-surface: rgba(28, 25, 23, 0.85);
+  --bg-well: rgba(11, 13, 23, 0.75);
+  --border-subtle: rgba(41, 37, 36, 0.9);
+  --border-strong: #44403C;
+  --text-primary: #F5F5F4;
+  --text-secondary: #D6D3D1;
+  --text-muted: #A8A29E;
+  --brand-plum: #8C4570;
+  --brand-plum-hover: #7A3B61;
+  --brand-coral: #F0867C;
+  --brand-gold: #E3C87D;
+  --brand-mauve: #C77FB0;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
   }
   ::selection {
     @apply bg-indigo-500/30;
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand-plum);
+    outline-offset: 2px;
+  }
+  .dark :focus-visible {
+    outline-color: var(--brand-coral);
+  }
+}
+
+/* Custom range slider styling matching landing palette */
+input[type="range"].momentum-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: #E7E5E4;
+  outline: none;
+}
+
+.dark input[type="range"].momentum-slider {
+  background: #292524;
+}
+
+input[type="range"].momentum-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F0867C, #6E3559);
+  border: 2px solid #F5F2EA;
+  box-shadow: 0 2px 6px rgba(110, 53, 89, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].momentum-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+input[type="range"].momentum-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F0867C, #6E3559);
+  border: 2px solid #F5F2EA;
+  box-shadow: 0 2px 6px rgba(110, 53, 89, 0.35);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

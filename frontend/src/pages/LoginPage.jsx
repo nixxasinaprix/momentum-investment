@@ -8,6 +8,7 @@ import {
 import Grainient from "../components/grainient";
 import SceneryBackground from "../components/SceneryBackground";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 /* ---------- animation variants ---------- */
 const card = {
@@ -69,7 +70,7 @@ const GoogleIcon = ({ className }) => (
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, signup } = useAuth();
-  const [dark, setDark] = useState(false);
+  const { dark, setDark } = useTheme();
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -77,10 +78,6 @@ export default function LoginPage() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [quoteIndex, setQuoteIndex] = useState(0);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
 
   /* rotate quotes every 5 seconds */
   useEffect(() => {

@@ -6,6 +6,7 @@ import {
   ArrowRight, CheckCircle2, Menu, X, Sun, Moon, RefreshCw, TrendingDown
 } from "lucide-react";
 import SceneryBackground from "../components/SceneryBackground";
+import { useTheme } from "../context/ThemeContext";
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
@@ -66,7 +67,7 @@ const staggerContainer = {
 };
 
 export default function LandingPage() {
-  const [dark, setDark] = useState(false);
+  const { dark, setDark } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [marketDetails, setMarketDetails] = useState(DEFAULT_MARKET_DATA);
   const [isLiveFeed, setIsLiveFeed] = useState(false);
@@ -76,10 +77,6 @@ export default function LandingPage() {
   useEffect(() => {
     document.title = "Momentum Investment · Nifty 200 Quantitative Research";
   }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
 
   // Manual refresh handler
   const handleRefresh = async () => {
