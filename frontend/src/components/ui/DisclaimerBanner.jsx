@@ -8,16 +8,22 @@ export default function DisclaimerBanner({
 }) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-gold/65 bg-brand-gold/20 px-4 py-2.5 text-xs text-stone-800 shadow-sm backdrop-blur-md dark:border-brand-gold/30 dark:bg-brand-gold/10 dark:text-stone-200 ${className}`}
+      className={`lab-card relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-2xl px-4 py-3 text-xs text-[var(--text-secondary)] ${className}`}
     >
-      <div className="flex items-start gap-2 sm:items-center">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-plum dark:text-brand-gold sm:mt-0" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-coral via-brand-gold to-brand-plum"
+      />
+      <div className="flex items-start gap-2.5 pl-1.5 sm:items-center">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-gold to-brand-coral text-[#3B1F4E] shadow-sm">
+          <Info className="h-3.5 w-3.5" />
+        </span>
         <span>
-          <strong>{title}</strong> {description}
+          <strong className="text-[var(--text-primary)]">{title}</strong> {description}
         </span>
       </div>
       {right && (
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-stone-700 dark:text-stone-300">
+        <div className="flex flex-wrap items-center gap-3 pl-1.5 text-[11px] font-medium text-[var(--text-muted)] sm:pl-0">
           {right}
         </div>
       )}

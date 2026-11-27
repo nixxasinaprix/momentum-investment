@@ -2,15 +2,15 @@ import { Link } from "react-router-dom";
 
 const VARIANT_CLASSES = {
   primary:
-    "bg-brand-plum text-stone-50 shadow-lg shadow-brand-plum/30 hover:bg-brand-plumHover dark:bg-brand-plumDark dark:shadow-brand-plumDark/30 dark:hover:bg-brand-plumDarkHover",
+    "bg-brand-plum text-surface-cream shadow-lg shadow-brand-plum/30 hover:bg-brand-plumHover dark:bg-brand-plumDark dark:shadow-brand-plumDark/35 dark:hover:bg-brand-plumDarkHover",
   gradient:
-    "bg-gradient-to-r from-brand-plum via-brand-plumDark to-brand-coral text-stone-50 shadow-lg shadow-brand-plum/30 hover:brightness-110 dark:shadow-brand-plumDark/30",
+    "bg-gradient-to-r from-brand-plum via-brand-plumDark to-brand-coral text-surface-cream shadow-lg shadow-brand-plum/30 hover:brightness-110 dark:shadow-brand-plumDark/35",
   secondary:
-    "border border-stone-300 bg-white/85 text-stone-700 shadow-sm backdrop-blur-sm hover:border-brand-plum hover:text-stone-900 dark:border-stone-700 dark:bg-stone-800/85 dark:text-stone-200 dark:hover:border-brand-coral dark:hover:text-stone-100",
+    "border border-brand-plum/30 bg-surface-cream/90 text-[#3B1F4E] shadow-sm hover:border-brand-plum hover:bg-surface-cream dark:border-brand-coral/35 dark:bg-[#2B1740]/90 dark:text-surface-cream dark:hover:border-brand-coral",
   ghost:
-    "border border-transparent bg-transparent text-stone-700 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800/60 dark:hover:text-brand-coral",
+    "border border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-brand-coral/15 hover:text-[var(--text-primary)]",
   danger:
-    "border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-500/35 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25",
+    "border border-red-300 bg-red-50 text-red-800 hover:border-red-400 hover:bg-red-100 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-200 dark:hover:bg-red-500/30",
 };
 
 const SIZE_CLASSES = {

@@ -26,7 +26,7 @@ export default function Tooltip({
         <button
           type="button"
           aria-label="More information"
-          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-stone-500 transition hover:text-brand-plum dark:text-stone-400 dark:hover:text-brand-coral"
+          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-brand-plum/75 transition hover:text-brand-plum dark:text-brand-coral/80 dark:hover:text-brand-coral"
         >
           <HelpCircle className="h-3.5 w-3.5" />
         </button>
@@ -34,7 +34,7 @@ export default function Tooltip({
       {open && content && (
         <span
           role="tooltip"
-          className={`pointer-events-none absolute z-40 w-max max-w-[240px] rounded-xl border border-stone-200 bg-white/95 px-3 py-2 text-[11px] font-medium leading-snug text-stone-700 shadow-xl backdrop-blur-md dark:border-stone-700 dark:bg-stone-900/95 dark:text-stone-200 ${posCls}`}
+          className={`lab-card pointer-events-none absolute z-40 w-max max-w-[240px] rounded-xl px-3 py-2 text-[11px] font-medium leading-snug text-[var(--text-primary)] ${posCls}`}
         >
           {content}
         </span>

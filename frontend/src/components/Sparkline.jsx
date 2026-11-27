@@ -12,7 +12,7 @@ export default function Sparkline({ data = [], positive, height = 34 }) {
   );
 
   if (chartData.length < 2) {
-    return <span className="text-xs text-stone-400 dark:text-stone-500">—</span>;
+    return <span className="text-xs text-[var(--text-muted)]">—</span>;
   }
 
   const isUp =

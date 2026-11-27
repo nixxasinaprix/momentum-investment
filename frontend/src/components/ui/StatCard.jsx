@@ -1,16 +1,40 @@
-const ACCENT_MAP = {
-  default:
-    "border-brand-coral/35 bg-brand-coral/15 text-brand-plum dark:border-brand-coral/30 dark:bg-brand-coral/15 dark:text-brand-coral",
-  emerald:
-    "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/25 dark:bg-emerald-500/15 dark:text-emerald-300",
-  amber:
-    "border-brand-gold/60 bg-brand-gold/25 text-stone-800 dark:border-brand-gold/35 dark:bg-brand-gold/15 dark:text-brand-gold",
-  rose:
-    "border-red-200 bg-red-50 text-red-600 dark:border-red-500/25 dark:bg-red-500/15 dark:text-red-300",
-  red:
-    "border-red-200 bg-red-50 text-red-600 dark:border-red-500/25 dark:bg-red-500/15 dark:text-red-300",
-  plum:
-    "border-brand-plum/25 bg-brand-plum/10 text-brand-plum dark:border-brand-plumDark/40 dark:bg-brand-plumDark/25 dark:text-brand-coral",
+const ACCENT_STYLES = {
+  default: {
+    topBar: "from-brand-coral via-brand-gold to-brand-plum",
+    iconTile:
+      "from-brand-coral to-brand-plum text-surface-cream shadow-lg shadow-brand-coral/35",
+    blob: "bg-brand-coral/20",
+  },
+  emerald: {
+    topBar: "from-emerald-400 via-brand-gold to-emerald-600",
+    iconTile:
+      "from-emerald-500 to-teal-700 text-surface-cream shadow-lg shadow-emerald-500/35",
+    blob: "bg-emerald-400/20",
+  },
+  amber: {
+    topBar: "from-brand-gold via-brand-coral to-amber-600",
+    iconTile:
+      "from-brand-gold to-amber-600 text-[#3B1F4E] shadow-lg shadow-brand-gold/40",
+    blob: "bg-brand-gold/25",
+  },
+  rose: {
+    topBar: "from-red-400 via-brand-coral to-brand-plum",
+    iconTile:
+      "from-red-500 to-brand-plum text-surface-cream shadow-lg shadow-red-500/35",
+    blob: "bg-red-400/20",
+  },
+  red: {
+    topBar: "from-red-400 via-brand-coral to-brand-plum",
+    iconTile:
+      "from-red-500 to-brand-plum text-surface-cream shadow-lg shadow-red-500/35",
+    blob: "bg-red-400/20",
+  },
+  plum: {
+    topBar: "from-brand-plum via-brand-mauve to-brand-coral",
+    iconTile:
+      "from-brand-plum to-brand-mauve text-surface-cream shadow-lg shadow-brand-plum/40",
+    blob: "bg-brand-mauve/25",
+  },
 };
 
 export default function StatCard({
@@ -23,38 +47,48 @@ export default function StatCard({
   className = "",
 }) {
   const Tag = onClick ? "button" : "div";
+  const theme = ACCENT_STYLES[accent] || ACCENT_STYLES.default;
 
   return (
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`group flex w-full flex-col justify-between rounded-2xl border border-stone-200/90 bg-white/80 p-5 text-left shadow-xl backdrop-blur-md transition-all duration-300 dark:border-stone-800 dark:bg-stone-900/80 ${
-        onClick
-          ? "cursor-pointer hover:-translate-y-0.5 hover:border-brand-plum/50 hover:shadow-2xl dark:hover:border-brand-coral/50"
-          : ""
+      className={`lab-card group relative flex w-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-left ${
+        onClick ? "lab-card-interactive cursor-pointer" : ""
       } ${className}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+      {/* Thin gradient top border */}
+      <div
+        aria-hidden="true"
+        className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r ${theme.topBar}`}
+      />
+
+      {/* Soft organic corner blob matching login card */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full blur-md ${theme.blob}`}
+        style={{ borderRadius: "55% 45% 50% 50% / 50% 55% 45% 50%" }}
+      />
+
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
           {label}
         </span>
         {Icon && (
           <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
-              ACCENT_MAP[accent] || ACCENT_MAP.default
-            }`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${theme.iconTile}`}
           >
             <Icon className="h-4 w-4" />
           </div>
         )}
       </div>
 
-      <div className="mt-3">
-        <div className="font-display text-2xl font-bold tracking-tight tabular-nums text-stone-900 dark:text-stone-100">
+      <div className="relative z-10 mt-3">
+        <div className="font-display text-2xl font-extrabold tracking-tight tabular-nums text-[var(--text-primary)]">
           {value}
         </div>
         {subtext && (
-          <p className="mt-1 truncate text-xs text-stone-600 dark:text-stone-400">
+          <p className="mt-1 truncate text-xs font-medium text-[var(--text-muted)]">
             {subtext}
           </p>
         )}

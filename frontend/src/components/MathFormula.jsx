@@ -17,7 +17,7 @@ export default function MathFormula({ math, display = false, className = "" }) {
   if (display) {
     return (
       <div
-        className={`overflow-x-auto py-1 text-stone-900 dark:text-stone-100 ${className}`}
+        className={`overflow-x-auto py-1 text-[var(--text-primary)] ${className}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
@@ -25,7 +25,7 @@ export default function MathFormula({ math, display = false, className = "" }) {
 
   return (
     <span
-      className={`inline-block align-middle text-stone-900 dark:text-stone-100 ${className}`}
+      className={`inline-block align-middle text-[var(--text-primary)] ${className}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

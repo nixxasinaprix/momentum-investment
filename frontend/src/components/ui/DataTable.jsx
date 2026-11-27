@@ -64,17 +64,17 @@ export default function DataTable({
   }
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-stone-200/90 bg-white/80 shadow-xl backdrop-blur-md transition-colors duration-700 dark:border-stone-800 dark:bg-stone-900/80">
+    <div className="lab-card min-w-0 overflow-hidden rounded-2xl">
       <div className={`overflow-x-auto ${stickyHeader ? "max-h-[70vh]" : ""}`}>
         <table className="w-full min-w-[720px] border-collapse text-left text-sm">
           <thead
-            className={
+            className={`lab-table-head ${
               stickyHeader
-                ? "sticky top-0 z-10 bg-stone-100/95 backdrop-blur-md dark:bg-stone-900/95"
-                : "bg-stone-100/80 dark:bg-stone-800/50"
-            }
+                ? "sticky top-0 z-10 bg-[#F3E8EA] dark:bg-[#2B1740]"
+                : ""
+            }`}
           >
-            <tr className="border-b border-stone-200/90 text-xs font-semibold uppercase tracking-wider text-stone-600 dark:border-stone-800 dark:text-stone-400">
+            <tr className="text-xs font-bold uppercase tracking-wider text-[#3B1F4E] dark:text-brand-gold">
               {columns.map((col) => {
                 const active = sortKey === col.key;
                 return (
@@ -104,7 +104,7 @@ export default function DataTable({
                           className={
                             active
                               ? "text-brand-plum dark:text-brand-coral"
-                              : "text-stone-400 dark:text-stone-600"
+                              : "text-brand-plum/45 dark:text-brand-coral/45"
                           }
                         >
                           {active ? (
@@ -126,7 +126,7 @@ export default function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-200/70 dark:divide-stone-800/80">
+          <tbody className="lab-table-body">
             {pagedRows.map((row, idx) => (
               <tr
                 key={row[rowKey]}
@@ -142,20 +142,20 @@ export default function DataTable({
                       }
                     : undefined
                 }
-                className={`transition-colors ${
+                className={`${
                   zebra && idx % 2 === 1
-                    ? "bg-surface-cream/40 dark:bg-stone-800/20"
+                    ? "bg-brand-plum/[0.03] dark:bg-brand-coral/[0.04]"
                     : ""
                 } ${
                   onRowClick
-                    ? "cursor-pointer hover:bg-stone-100/80 focus:bg-stone-100 focus:outline-none dark:hover:bg-stone-800/60 dark:focus:bg-stone-800/70"
-                    : "hover:bg-stone-100/50 dark:hover:bg-stone-800/40"
+                    ? "cursor-pointer focus:bg-brand-coral/15 focus:outline-none"
+                    : ""
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-stone-700 dark:text-stone-200 ${
+                    className={`px-4 py-3 text-[var(--text-secondary)] ${
                       col.align === "right" ? "text-right tabular-nums" : ""
                     }`}
                   >
@@ -169,15 +169,15 @@ export default function DataTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200/80 bg-surface-cream/65 px-4 py-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-table)] bg-brand-plum/[0.06] px-4 py-3 text-xs text-[var(--text-muted)] dark:bg-brand-plumDark/20">
           <span>
             Showing{" "}
-            <strong className="text-stone-900 dark:text-stone-100">
+            <strong className="text-[var(--text-primary)]">
               {(safePage - 1) * pageSize + 1}–
               {Math.min(safePage * pageSize, sortedRows.length)}
             </strong>{" "}
             of{" "}
-            <strong className="text-stone-900 dark:text-stone-100">
+            <strong className="text-[var(--text-primary)]">
               {sortedRows.length}
             </strong>
           </span>
@@ -191,7 +191,7 @@ export default function DataTable({
               <ChevronLeft className="h-3.5 w-3.5" />
               Prev
             </Button>
-            <span className="px-2 font-medium text-stone-700 dark:text-stone-300">
+            <span className="px-2 font-semibold text-[var(--text-primary)]">
               Page {safePage} / {totalPages}
             </span>
             <Button

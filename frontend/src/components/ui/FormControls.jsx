@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 
 const FIELD_BASE =
-  "w-full rounded-xl border border-stone-300/90 bg-white/85 text-sm text-stone-900 shadow-sm backdrop-blur-sm transition-colors placeholder:text-stone-400 focus:border-brand-plum focus:outline-none dark:border-stone-700 dark:bg-stone-900/85 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-brand-coral";
+  "lab-input w-full rounded-xl text-sm placeholder:text-[var(--text-muted)]";
 
 export function Input({
   label,
@@ -14,11 +14,11 @@ export function Input({
   ...props
 }) {
   return (
-    <label className={`block text-xs font-medium text-stone-600 dark:text-stone-400 ${className}`}>
+    <label className={`block text-xs font-semibold text-[var(--text-muted)] ${className}`}>
       {label && <span className="mb-1 block">{label}</span>}
       <div className="relative">
         {Icon && (
-          <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400 dark:text-stone-500" />
+          <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-plum dark:text-brand-coral" />
         )}
         <input
           value={value}
@@ -32,7 +32,7 @@ export function Input({
             type="button"
             onClick={onClear}
             aria-label="Clear input"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-stone-400 hover:text-stone-900 dark:text-stone-500 dark:hover:text-brand-coral"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-[var(--text-muted)] hover:text-brand-plum dark:hover:text-brand-coral"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -52,7 +52,7 @@ export function Select({
   ...props
 }) {
   return (
-    <label className={`block text-xs font-medium text-stone-600 dark:text-stone-400 ${className}`}>
+    <label className={`block text-xs font-semibold text-[var(--text-muted)] ${className}`}>
       {label && <span className="mb-1 block">{label}</span>}
       <div className="relative">
         {Icon && (
@@ -81,12 +81,10 @@ export function Slider({
   className = "",
 }) {
   return (
-    <div
-      className={`rounded-xl border border-stone-200/80 bg-surface-cream/85 p-4 dark:border-stone-800 dark:bg-surface-nightAlt/80 ${className}`}
-    >
+    <div className={`lab-well rounded-xl p-4 ${className}`}>
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="font-semibold text-stone-900 dark:text-stone-100">{label}</span>
-        <span className="font-bold tabular-nums text-brand-plum dark:text-brand-coral">
+        <span className="font-semibold text-[var(--text-primary)]">{label}</span>
+        <span className="rounded-full bg-brand-plum/10 px-2.5 py-0.5 font-bold tabular-nums text-brand-plum dark:bg-brand-coral/20 dark:text-brand-coral">
           {valueLabel}
         </span>
       </div>
@@ -97,10 +95,10 @@ export function Slider({
         step={step}
         value={value}
         onChange={onChange}
-        className="momentum-slider mt-2.5 w-full cursor-pointer"
+        className="momentum-slider mt-3 w-full cursor-pointer"
       />
       {description && (
-        <p className="mt-2 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
           {description}
         </p>
       )}
@@ -118,11 +116,9 @@ export function Toggle({
   className = "",
 }) {
   return (
-    <div
-      className={`flex flex-col justify-between rounded-xl border border-stone-200/80 bg-surface-cream/85 p-4 dark:border-stone-800 dark:bg-surface-nightAlt/80 ${className}`}
-    >
+    <div className={`lab-well flex flex-col justify-between rounded-xl p-4 ${className}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+        <span className="text-xs font-semibold text-[var(--text-primary)]">
           {label}
         </span>
         <button
@@ -132,20 +128,20 @@ export function Toggle({
           onClick={() => onChange(!checked)}
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold transition-all ${
             checked
-              ? "border-brand-plum/35 bg-brand-plum/10 text-brand-plum dark:border-brand-coral/40 dark:bg-brand-coral/15 dark:text-brand-coral"
-              : "border-stone-300 bg-white/80 text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400"
+              ? "border-brand-plum/40 bg-brand-plum text-surface-cream shadow-sm dark:border-brand-coral/50 dark:bg-brand-coral dark:text-[#3B1F4E]"
+              : "border-brand-plum/25 bg-brand-plum/10 text-[var(--text-secondary)] dark:border-brand-coral/30 dark:bg-[#2B1740]"
           }`}
         >
           <span
             className={`h-2 w-2 rounded-full transition-colors ${
-              checked ? "bg-brand-plum dark:bg-brand-coral" : "bg-stone-400 dark:bg-stone-600"
+              checked ? "bg-brand-gold dark:bg-[#3B1F4E]" : "bg-brand-plum/45 dark:bg-brand-coral/50"
             }`}
           />
           {checked ? onLabel : offLabel}
         </button>
       </div>
       {description && (
-        <p className="mt-2 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
           {description}
         </p>
       )}
@@ -164,7 +160,7 @@ export function SegmentedControl({
 
   return (
     <div
-      className={`inline-flex rounded-full border border-stone-200 bg-stone-100/90 p-0.5 dark:border-stone-700/80 dark:bg-stone-900/90 ${className}`}
+      className={`lab-well inline-flex rounded-full p-0.5 ${className}`}
     >
       {options.map((opt) => {
         const active = value === opt.value;
@@ -175,8 +171,8 @@ export function SegmentedControl({
             onClick={() => onChange(opt.value)}
             className={`rounded-full font-semibold transition-all ${btnCls} ${
               active
-                ? "bg-brand-plum text-stone-50 shadow-sm dark:bg-brand-plumDark"
-                : "text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-brand-coral"
+                ? "bg-gradient-to-r from-brand-plum to-brand-plumDark text-surface-cream shadow-sm dark:from-brand-coral dark:to-brand-plumDark dark:text-surface-cream"
+                : "text-[var(--text-secondary)] hover:text-brand-plum dark:hover:text-brand-coral"
             }`}
           >
             {opt.label}

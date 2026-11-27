@@ -7,10 +7,10 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center bg-surface-cream text-stone-900 transition-colors duration-700 dark:bg-surface-night dark:text-stone-100">
-        <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white/85 px-6 py-4 shadow-xl backdrop-blur-md dark:border-stone-800 dark:bg-surface-cardDark/90">
+      <div className="relative z-10 flex min-h-[100dvh] items-center justify-center text-[var(--text-primary)] transition-colors duration-700">
+        <div className="lab-card flex items-center gap-3 rounded-2xl px-6 py-4">
           <Loader2 className="h-5 w-5 animate-spin text-brand-plum dark:text-brand-coral" />
-          <span className="text-sm font-medium text-stone-700 dark:text-stone-200">
+          <span className="text-sm font-semibold text-[var(--text-primary)]">
             Restoring session...
           </span>
         </div>

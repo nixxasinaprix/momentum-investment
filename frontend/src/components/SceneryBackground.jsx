@@ -14,7 +14,12 @@ const STARS = [
 
 const EASE = "0.9s ease";
 
-export default function SceneryBackground({ dark = false, className = "" }) {
+export default function SceneryBackground({
+  dark = false,
+  skyOpacity = 1,
+  mountainOpacity = 1,
+  className = "",
+}) {
   return (
     <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
       <svg
@@ -51,7 +56,7 @@ export default function SceneryBackground({ dark = false, className = "" }) {
         </defs>
 
         {/* sky */}
-        <rect x="0" y="0" width="800" height="900" fill="url(#sb-sky)" />
+        <rect x="0" y="0" width="800" height="900" fill="url(#sb-sky)" fillOpacity={skyOpacity} />
 
         {/* stars — only read in dark mode */}
         <g style={{ opacity: dark ? 0.9 : 0.12, transition: `opacity ${EASE}` }}>
@@ -88,12 +93,14 @@ export default function SceneryBackground({ dark = false, className = "" }) {
         <polygon
           points="0,620 120,430 260,560 360,380 480,560 620,410 760,560 800,520 800,900 0,900"
           fill="url(#sb-mtn-back)"
+          fillOpacity={mountainOpacity}
         />
 
         {/* mountains — front ridge, drifting into a gentle uptrend */}
         <polygon
           points="0,720 150,650 300,690 420,540 560,610 700,470 800,530 800,900 0,900"
           fill="url(#sb-mtn-front)"
+          fillOpacity={mountainOpacity}
         />
 
         {/* peak marker at the high point */}

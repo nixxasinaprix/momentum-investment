@@ -8,14 +8,14 @@ export function EmptyState({
   action,
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-stone-200/90 bg-white/80 px-6 py-12 text-center shadow-xl backdrop-blur-md dark:border-stone-800 dark:bg-stone-900/80">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-stone-200 bg-stone-100 text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
+    <div className="lab-card flex flex-col items-center justify-center rounded-2xl px-6 py-12 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-coral/25 to-brand-plum/25 text-brand-plum shadow-md dark:text-brand-coral">
         <Icon className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 font-display text-base font-bold text-stone-900 dark:text-stone-100">
+      <h3 className="mt-4 font-display text-base font-bold text-[var(--text-primary)]">
         {title}
       </h3>
-      <p className="mt-1.5 max-w-md text-sm text-stone-600 dark:text-stone-400">
+      <p className="mt-1.5 max-w-md text-sm text-[var(--text-muted)]">
         {description}
       </p>
       {action && <div className="mt-5">{action}</div>}
@@ -29,14 +29,14 @@ export function ErrorState({
   onRetry,
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-red-200 bg-red-50/85 px-6 py-10 text-center shadow-xl backdrop-blur-md dark:border-red-500/25 dark:bg-red-950/35">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-red-200 bg-red-100 text-red-600 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
+    <div className="lab-card flex flex-col items-center justify-center rounded-2xl border-red-400/50 px-6 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-brand-plum text-surface-cream shadow-lg shadow-red-500/30">
         <AlertTriangle className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 font-display text-base font-bold text-stone-900 dark:text-stone-100">
+      <h3 className="mt-4 font-display text-base font-bold text-[var(--text-primary)]">
         {title}
       </h3>
-      <p className="mt-1.5 max-w-md text-sm text-red-700 dark:text-red-200/85">
+      <p className="mt-1.5 max-w-md text-sm font-medium text-red-700 dark:text-red-300">
         {message}
       </p>
       {onRetry && (

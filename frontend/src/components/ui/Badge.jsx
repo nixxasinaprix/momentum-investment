@@ -1,34 +1,34 @@
 const BADGE_VARIANTS = {
   neutral:
-    "border-stone-200 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300",
+    "border-brand-plum/20 bg-brand-plum/10 text-[#3B1F4E] dark:border-brand-coral/25 dark:bg-[#2B1740] dark:text-surface-cream",
   plum:
-    "border-brand-plum/25 bg-brand-plum/10 text-brand-plum dark:border-brand-coral/35 dark:bg-brand-plumDark/30 dark:text-brand-coral",
+    "border-brand-plum/30 bg-brand-plum/15 text-[#3B1F4E] dark:border-brand-coral/40 dark:bg-brand-plumDark/45 dark:text-brand-coral",
   coral:
-    "border-brand-coral/45 bg-brand-coral/15 text-brand-plum dark:border-brand-coral/35 dark:bg-brand-coral/15 dark:text-brand-coral",
+    "border-brand-coral/50 bg-brand-coral/20 text-[#5D2C4B] dark:border-brand-coral/45 dark:bg-brand-coral/20 dark:text-brand-coral",
   gold:
-    "border-brand-gold/70 bg-brand-gold/25 text-stone-800 dark:border-brand-gold/40 dark:bg-brand-gold/15 dark:text-brand-gold",
+    "border-brand-gold/80 bg-brand-gold/30 text-[#3B1F4E] dark:border-brand-gold/45 dark:bg-brand-gold/20 dark:text-brand-gold",
   emerald:
-    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/35 dark:bg-emerald-500/15 dark:text-emerald-300",
+    "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/20 dark:text-emerald-200",
   orange:
-    "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/35 dark:bg-orange-500/15 dark:text-orange-300",
+    "border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-500/40 dark:bg-orange-500/20 dark:text-orange-200",
   amber:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-300",
+    "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/20 dark:text-amber-200",
   red:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-500/35 dark:bg-red-500/15 dark:text-red-300",
+    "border-red-300 bg-red-50 text-red-800 dark:border-red-500/40 dark:bg-red-500/20 dark:text-red-200",
   sky:
-    "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/35 dark:bg-sky-500/15 dark:text-sky-300",
+    "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-500/40 dark:bg-sky-500/20 dark:text-sky-200",
 };
 
 const DOT_COLORS = {
-  neutral: "bg-stone-500 dark:bg-stone-400",
+  neutral: "bg-brand-plum dark:bg-brand-coral",
   plum: "bg-brand-plum dark:bg-brand-coral",
   coral: "bg-brand-coral",
-  gold: "bg-amber-500 dark:bg-brand-gold",
-  emerald: "bg-emerald-500 dark:bg-emerald-400",
-  orange: "bg-orange-500 dark:bg-orange-400",
-  amber: "bg-amber-500 dark:bg-amber-400",
-  red: "bg-red-500 dark:bg-red-400",
-  sky: "bg-sky-500 dark:bg-sky-400",
+  gold: "bg-amber-600 dark:bg-brand-gold",
+  emerald: "bg-emerald-600 dark:bg-emerald-400",
+  orange: "bg-orange-600 dark:bg-orange-400",
+  amber: "bg-amber-600 dark:bg-amber-400",
+  red: "bg-red-600 dark:bg-red-400",
+  sky: "bg-sky-600 dark:bg-sky-400",
 };
 
 const SIZE_CLS = {
